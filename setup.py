@@ -20,10 +20,16 @@ setup(
 	include_package_data=True,
 	zip_safe=False,
 	install_requires=[
+	    'xlrd',
+	    'brewery'
 	],
 	entry_points=\
 	"""
         [ckan.plugins]
 	    datapreview=ckanext.datapreview.plugin:DataPreviewPlugin
+
+        [paste.paster_command]
+        prepresourcecache = ckanext.datapreview.command:PrepResourceCache
+
 	""",
 )
