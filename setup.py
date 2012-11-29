@@ -21,7 +21,6 @@ setup(
 	zip_safe=False,
 	install_requires=[
 	    'xlrd',
-	    'brewery'
 	],
 	entry_points=\
 	"""
