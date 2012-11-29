@@ -101,7 +101,7 @@ def proxy_query(resource, url, query):
     # if there is not, try to get it from file extension
 
     if parts.scheme not in ['http', 'https']:
-        raise ResourceError('Only HTTP URLs are supported',
+        raise ResourceError('Only HTTP(S) URLs are supported',
                             'Data proxy does not support %s URLs' % parts.scheme)
 
     resource_type = query.get("type")
@@ -127,13 +127,11 @@ def proxy_query(resource, url, query):
     max_length = 1000000
 
     if length and trans.requires_size_limit and length > max_length:
-        raise ResourceError('The requested file is too big to proxy',
+        raise ResourceError('The requested file is too big to download',
                             'Requested resource is %s bytes. Size limit is %s. '
-                            'If we proxy large files we\'ll use up all our bandwidth'
                             % (length, max_length))
 
     try:
-        print trans
         result = trans.transform()
     except Exception, e:
         log.debug('Transformation of %s failed. %s: %s', url, e.__class__.__name__, e)

@@ -24,8 +24,18 @@ class DataPreviewController(BaseController):
             return ""
 
         try:
-            result = proxy_query(resource, resource.url, {'type': resource.format.lower() if resource.format else ''})
+            print request.params
+            if not 'type' in request.params:
+                typ = resource.format.lower() if resource.format else ''
+            else:
+                typ = request.params['type']
+            query = {'type': typ}
+            if 'max-results' in request.params:
+                query['max-results'] = request.params['max-results']
+                print 'Set max'
+            result = proxy_query(resource, resource.url, query)
         except ProxyError as e:
+            print e
             result = str(e)
 
         return result
@@ -36,5 +46,5 @@ class DataPreviewController(BaseController):
                             path)
         if not os.path.exists(root):
             abort(404)
-
+        response.content_type = 'application/json'
         return str(open(root).read())

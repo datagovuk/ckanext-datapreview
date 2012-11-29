@@ -42,7 +42,7 @@ class Transformer(object):
         self.max_results = 500
         if "max-results" in query:
             try:
-                self.max_results = int(query.getfirst("max-results"))
+                self.max_results = int(query.get("max-results", 500))
             except:
                 raise ValueError("max-results should be an integer")
 
