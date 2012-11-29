@@ -24,7 +24,7 @@ class DataPreviewController(BaseController):
             return ""
 
         try:
-            result = proxy_query(resource, resource.url, {'type': 'csv'})
+            result = proxy_query(resource, resource.url, {'type': resource.format.lower() if resource.format else ''})
         except ProxyError as e:
             result = str(e)
 

@@ -3,6 +3,7 @@ import os
 import urlparse
 import httplib
 import logging
+import json
 from ckanext.datapreview.lib import AttributeDict
 from ckanext.datapreview.transform.base import transformer
 
@@ -123,7 +124,7 @@ def proxy_query(resource, url, query):
 
     log.debug('The file at %s has length %s', url, length)
 
-    max_length = 100000
+    max_length = 1000000
 
     if length and trans.requires_size_limit and length > max_length:
         raise ResourceError('The requested file is too big to proxy',
@@ -132,6 +133,7 @@ def proxy_query(resource, url, query):
                             % (length, max_length))
 
     try:
+        print trans
         result = trans.transform()
     except Exception, e:
         log.debug('Transformation of %s failed. %s: %s', url, e.__class__.__name__, e)
