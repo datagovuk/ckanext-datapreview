@@ -21,21 +21,24 @@ class DataPreviewController(BaseController):
     def index(self, id):
         resource = model.Resource.get(id)
         if not resource or resource.state != 'active':
-            return ""
+            abort(404, "Resource not found")
+
+        typ = request.params.get('type',
+                                 resource.format.lower()
+                                 if resource.format else '')
+
+        query = {'type': typ}
+        for k in ['max-results', 'encoding']:
+            if k in request.params:
+                query[k] = request.params[k]
 
         try:
-            print request.params
-            if not 'type' in request.params:
-                typ = resource.format.lower() if resource.format else ''
-            else:
-                typ = request.params['type']
-            query = {'type': typ}
-            if 'max-results' in request.params:
-                query['max-results'] = request.params['max-results']
-                print 'Set max'
             result = proxy_query(resource, resource.url, query)
+
+            if resource.mimetype:
+                response.content_type = resource.mimetype
         except ProxyError as e:
-            print e
+            log.error(e)
             result = str(e)
 
         return result
