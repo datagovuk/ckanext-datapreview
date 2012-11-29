@@ -34,7 +34,7 @@ On data.gov.uk we have patched a local copy of recline to use the new dataprevie
 
 ## Improvements
 
-* Increases the download size (doesn't have the appengine download limit)
+* Increases the limit on download size (doesn't have the appengine download limit)
 * When provided with a HTML file pretending to be a CSV file, it returns an error instead of rendering the HTML on linefeeds.
 * Uses the local archive cache if it exists rather than hitting the remote site.
 
