@@ -36,7 +36,7 @@ class DataPreviewController(BaseController):
             result = proxy_query(resource, resource.url, query)
 
             if resource.mimetype:
-                response.content_type = resource.mimetype
+                response.content_type = str(resource.mimetype)
         except ProxyError as e:
             log.error(e)
             result = str(e)
