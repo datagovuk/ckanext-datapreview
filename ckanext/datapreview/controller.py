@@ -35,8 +35,7 @@ class DataPreviewController(BaseController):
         try:
             result = proxy_query(resource, resource.url, query)
 
-            if resource.content_type:
-                response.content_type = str(resource.content_type)
+            response.content_type = 'application/json'
         except ProxyError as e:
             log.error(e)
             result = str(e)
