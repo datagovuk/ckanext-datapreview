@@ -20,7 +20,7 @@ def get_resource_length(url, required = False, redirects = 0):
         connection.request("HEAD", parts.path)
     except Exception, e:
         log.error("Unable to access resource: %s" % e)
-        raise ResourceError("Unable to access resource", "There was a problem retrieving the resource")
+        raise ResourceError("Unable to access resource", "There was a problem retrieving the resource: %s" % e)
 
     res = connection.getresponse()
 
