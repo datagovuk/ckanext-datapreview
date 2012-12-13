@@ -7,7 +7,7 @@ import time
 import sys
 import requests
 import urlparse
-from .model import init_tables
+from ckanext.datapreview.model import init_tables
 
 from pylons import config
 from ckan.lib.cli import CkanCommand

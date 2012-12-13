@@ -19,7 +19,8 @@ def get_resource_length(url, required = False, redirects = 0):
     try:
         connection.request("HEAD", parts.path)
     except Exception, e:
-        raise ResourceError("Unable to access resource", "Unable to access resource. Reason: %s" % e)
+        log.error("Unable to access resource: %s" % e)
+        raise ResourceError("Unable to access resource", "There was a problem retrieving the resource")
 
     res = connection.getresponse()
 
@@ -42,9 +43,10 @@ def get_resource_length(url, required = False, redirects = 0):
         return length
 
     if required:
-        raise ResourceError("Unable to get content length",
-                                'No content-length returned for server: %s path: %s'
+        log.error('No content-length returned for server: %s path: %s'
                                 % (parts.netloc, parts.path))
+        raise ResourceError("Unable to get content length",
+                                'Unable to find the size of the remote resource')
     return None
 
 def render(**vars):
