@@ -32,16 +32,18 @@ class DataPreviewController(BaseController):
             if k in request.params:
                 query[k] = request.params[k]
 
+        err = False
         try:
             result = proxy_query(resource, resource.url, query)
 
             response.content_type = 'application/json'
         except ProxyError as e:
+            err = True
             log.error(e)
             result = str(e)
 
         fmt = request.params.get('callback')
-        if fmt:
+        if fmt and not err:
             return "%s(%s)" % (fmt,result)
 
         return result
