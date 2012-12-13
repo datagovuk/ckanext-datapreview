@@ -3,6 +3,7 @@ from ckanext.datapreview.transform.base import *
 
 from ckanext.datapreview.transform.csv_transform import CSVTransformer
 from ckanext.datapreview.transform.xls_transform import XLSTransformer
+from ckanext.datapreview.transform.plain_transform import PlainTransformer
 
 register_transformer({
         "name": "xls",
@@ -16,4 +17,11 @@ register_transformer({
         "class": CSVTransformer,
         "extensions": ["csv", "tsv"],
         "mime_types": ["text/csv", "text/comma-separated-values"]
+    })
+
+register_transformer({
+        "name": "plain",
+        "class": PlainTransformer,
+        "extensions": [".*"],
+        "mime_types": ["*/*"]
     })

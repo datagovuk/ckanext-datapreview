@@ -93,6 +93,18 @@ class HTTPResponseMarble(object):
             raise AttributeError('No such attribute %s'%name)
         self.__dict__[name] = value
 
+def int_formatter(value, places=3, seperator=u','):
+    value = str(value)
+    if len(value) <= places:
+        return value
+
+    parts = []
+    while value:
+        parts.append(value[-places:])
+        value = value[:-places]
+
+    parts.reverse()
+    return seperator.join(parts)
 
 def proxy_query(resource, url, query):
     parts = urlparse.urlparse(url)
@@ -116,20 +128,20 @@ def proxy_query(resource, url, query):
     try:
         trans = transformer(resource_type, resource, url, query)
     except Exception, e:
-        return e
         raise RequestError('Resource type not supported',
                             'Transformation of resource of type %s is not supported. Reason: %s'
                               % (resource_type, e))
+
     length = get_resource_length(url, trans.requires_size_limit)
 
     log.debug('The file at %s has length %s', url, length)
 
-    max_length = 1000000
+    max_length = query['size_limit']
 
     if length and trans.requires_size_limit and length > max_length:
-        raise ResourceError('The requested file is too big to download',
-                            'Requested resource is %s bytes. Size limit is %s. '
-                            % (length, max_length))
+        raise ResourceError('The requested file is too large to download',
+                            'Requested resource is %s bytes. Size limit is %s bytes. '
+                            % (int_formatter(length), int_formatter(max_length)))
 
     try:
         result = trans.transform()

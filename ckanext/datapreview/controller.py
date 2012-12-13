@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-import operator
+import json
 import collections
 from ckan.lib.base import (BaseController, c, g, render, request, response, abort)
 from pylons import config
@@ -16,7 +16,11 @@ from ckanext.datapreview.lib import AttributeDict
 from ckanext.datapreview.lib.helpers import proxy_query, ProxyError
 
 
+def _error(**vars):
+    return json.dumps(dict(error=vars), indent=4)
+
 class DataPreviewController(BaseController):
+
 
     def index(self, id):
         resource = model.Resource.get(id)
@@ -27,23 +31,22 @@ class DataPreviewController(BaseController):
                                  resource.format.lower()
                                  if resource.format else '')
 
-        query = {'type': typ}
+        size_limit = config.get('ckan.datapreview.limit', 1000000)
+        query = {'type': typ, 'size_limit': size_limit}
         for k in ['max-results', 'encoding']:
             if k in request.params:
                 query[k] = request.params[k]
 
-        err = False
+        response.content_type = 'application/json'
         try:
             result = proxy_query(resource, resource.url, query)
-
-            response.content_type = 'application/json'
         except ProxyError as e:
-            err = True
             log.error(e)
-            result = str(e)
+            result = _error(title=e.title, message=e.message)
+
 
         fmt = request.params.get('callback')
-        if fmt and not err:
+        if fmt:
             return "%s(%s)" % (fmt,result)
 
         return result

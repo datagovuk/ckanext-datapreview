@@ -23,10 +23,9 @@ def find_transformer(extension = None, mime_type = None):
 
 def transformer(type_name, resource, url, query):
     """Get transformation module for resource of given type"""
-
     trans_class = find_transformer(extension = type_name)
     if not trans_class:
-        raise Exception("No transformer for type '%s'" % type_name)
+        trans_class = find_transformer(extension='.*')
 
     return trans_class(resource, url, query)
 
