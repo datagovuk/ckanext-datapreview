@@ -140,7 +140,7 @@ def proxy_query(resource, url, query):
     indent=None
 
     result["url"] = url
-    result["length"] = length
+    result["length"] = length or 0
 
     # Check a few cells to see if this is secretly HTML, more than three < in the fields
     # is a random heuristic that may work. Or not.
@@ -150,7 +150,6 @@ def proxy_query(resource, url, query):
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:
             return error(title="Invalid content", message="This content appears to be HTML and not CSV")
-
 
     if query.has_key('indent'):
         indent=int(query.getfirst('indent'))

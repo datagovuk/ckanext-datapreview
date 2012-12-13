@@ -40,6 +40,10 @@ class DataPreviewController(BaseController):
             log.error(e)
             result = str(e)
 
+        fmt = request.params.get('callback')
+        if fmt:
+            return "%s(%s)" % (fmt,result)
+
         return result
 
 
