@@ -37,9 +37,11 @@ class DataPreviewController(BaseController):
             if k in request.params:
                 query[k] = request.params[k]
 
+        url = resource.cache_url if (hasattr(resource,"cache_url") and resource.cache_url)\
+            else resource.url
         response.content_type = 'application/json'
         try:
-            result = proxy_query(resource, resource.url, query)
+            result = proxy_query(resource, url, query)
         except ProxyError as e:
             log.error(e)
             result = _error(title=e.title, message=e.message)
