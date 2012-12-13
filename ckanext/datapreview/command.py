@@ -49,16 +49,19 @@ class PrepResourceCache(CkanCommand):
         if r.cache_url:
             print 'Already has a cache_url ' + r.cache_url
 
-        folder = "/tmp/%s" % (self.args[0][0:2],)
+        folder = os.path.join("/tmp/%s" % (self.args[0][0:2],), self.args[0])
         if not os.path.exists(folder):
             os.makedirs(folder)
 
         print "Fetching " + r.url
         req = requests.get(r.url)
-        with open(os.path.join(folder, self.args[0]), 'w+b') as f:
+        filename = os.path.basename(urlparse.urlparse(r.url).path)
+        p = os.path.join(folder, filename)
+        with open(p, 'w+b') as f:
             f.write(req.content)
 
-        root = "%s%s/%s" % (config.get('ckan.cache_url_root'),self.args[0][0:2],self.args[0])
+        root = "%s%s/%s/%s" % (config.get('ckan.cache_url_root'),self.args[0][0:2],self.args[0],filename)
+        print root
         r.cache_url = root
         model.Session.add(r)
         model.Session.commit()
