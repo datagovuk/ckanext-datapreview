@@ -37,9 +37,9 @@ class PrepResourceCache(CkanCommand):
         model.Session.configure(bind=model.meta.engine)
         model.repo.new_revision()
 
-        if not config.get('debug',True) or os.environ.get('DP_OVERRIDE'):
-            print 'Do not run this on a production DB'
-            return
+#        if not config.get('debug',True) or os.environ.get('DP_OVERRIDE'):
+#            print 'Do not run this on a production DB'
+#            return
 
         r = model.Resource.get(self.args[0])
         if not r:
