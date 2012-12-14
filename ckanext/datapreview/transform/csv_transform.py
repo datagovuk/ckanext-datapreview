@@ -25,7 +25,7 @@ class CSVTransformer(Transformer):
             self.dialect = None
 
     def transform(self):
-        handle = urllib2.urlopen(self.url)
+        handle = self.open_data(self.url)
 
         if not self.dialect:
             if self.url.endswith('.tsv'):

@@ -10,12 +10,17 @@ except ImportError:
     import simplejson as json
 
 class XMLTransformer(Transformer):
+    """
+    Transforms XML based formats (atom, xml, rss, rdf etc) and pretty prints
+    the output so that it is delivered in a readable format.
+    """
+
     def __init__(self, resource, url, query):
         super(XMLTransformer, self).__init__(resource, url, query)
         self.requires_size_limit = True
 
     def transform(self):
-        handle = urllib2.urlopen(self.url)
+        handle = self.open_data(self.url)
 
         dom = xml.dom.minidom.parseString(handle.read())
         pretty = dom.toprettyxml(indent='   ')

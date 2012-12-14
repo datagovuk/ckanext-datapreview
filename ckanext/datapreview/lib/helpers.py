@@ -1,41 +1,44 @@
 import re
 import os
 import urlparse
-import httplib
+import urllib2
 import logging
 import json
-from ckanext.datapreview.lib import AttributeDict
+import requests
 from ckanext.datapreview.transform.base import transformer
 
 log = logging.getLogger('ckanext.datapreview.lib.helpers')
 
+REDIRECT_LIMIT = 3
+
 def get_resource_length(url, required = False, redirects = 0):
-    """Get length of a resource"""
+    """Get length of a resource either from a head request to the url, or checking the
+    size on disk """
+    if not url.startswith('http'):
+        log.debug('Retrieved file size from disk')
+        return os.path.getsize(url)
 
-    parts = urlparse.urlparse(url)
-
-    connection = httplib.HTTPConnection(parts.netloc)
-
+    response = None
     try:
-        connection.request("HEAD", parts.path)
+        response = requests.head(url)
     except Exception, e:
         log.error("Unable to access resource: %s" % e)
-        raise ResourceError("Unable to access resource", "There was a problem retrieving the resource: %s" % e)
-
-    res = connection.getresponse()
+        raise ResourceError("Unable to access resource",
+            "There was a problem retrieving the resource: %s" % e)
 
     headers = {}
-    for header, value in res.getheaders():
+    for header, value in response.headers.iteritems():
         headers[header.lower()] = value
 
     # Redirect?
-    if res.status == 302 and redirects < REDIRECT_LIMIT:
+    if response.status_code == 302 and redirects < REDIRECT_LIMIT:
         if "location" not in headers:
             raise ResourceError("Resource moved, but no Location provided by resource server",
-                                    'Resource %s moved, but no Location provided by resource server: %s'
-                                    % (parts.path, parts.netloc))
+                'Resource %s moved, but no Location provided by resource server'
+                % (url))
 
-        return get_resource_length(headers["location"], required = required, redirects = redirects + 1)
+        return get_resource_length(headers["location"], required=required,
+            redirects=redirects + 1)
 
 
     if 'content-length' in headers:
@@ -43,23 +46,11 @@ def get_resource_length(url, required = False, redirects = 0):
         return length
 
     if required:
-        log.error('No content-length returned for server: %s path: %s'
-                                % (parts.netloc, parts.path))
+        log.error('No content-length returned for server: %s'
+                                % (url))
         raise ResourceError("Unable to get content length",
                                 'Unable to find the size of the remote resource')
     return None
-
-def render(**vars):
-    return ["<html>\n"
-        "<head>"
-        "  <title>%(title)s</title>"
-        "</head>\n"
-        "<body>\n"
-        "  <h1>%(title)s</h1>\n"
-        "  <p>%(msg)s</p>\n"
-        "</body>\n"
-        "</html>\n" %vars
-    ]
 
 def error(**vars):
     return json.dumps(dict(error=vars), indent=4)
@@ -108,6 +99,12 @@ def int_formatter(value, places=3, seperator=u','):
     parts.reverse()
     return seperator.join(parts)
 
+def _open_file(url):
+    return open(url, 'r')
+
+def _open_url(url):
+    return urllib2.urlopen(url)
+
 def proxy_query(resource, url, query):
     parts = urlparse.urlparse(url)
 
@@ -115,8 +112,9 @@ def proxy_query(resource, url, query):
     # if there is not, try to get it from file extension
 
     if parts.scheme not in ['http', 'https']:
-        raise ResourceError('Only HTTP(S) URLs are supported',
-                            'Data proxy does not support %s URLs' % parts.scheme)
+        query['handler'] = _open_file
+    else:
+        query['handler'] = _open_url
 
     resource_type = query.get("type")
     if not resource_type:
@@ -134,7 +132,8 @@ def proxy_query(resource, url, query):
                             'Transformation of resource of type %s is not supported. Reason: %s'
                               % (resource_type, e))
 
-    length = get_resource_length(url, trans.requires_size_limit)
+    length = query.get('length', get_resource_length(url,
+        trans.requires_size_limit))
 
     log.debug('The file at %s has length %s', url, length)
 
@@ -142,30 +141,34 @@ def proxy_query(resource, url, query):
 
     if length and trans.requires_size_limit and length > max_length:
         raise ResourceError('The requested file is too large to download',
-                            'Requested resource is %s bytes. Size limit is %s bytes. '
-                            % (int_formatter(length), int_formatter(max_length)))
+                            'Requested resource is %s bytes. '
+                            'Size limit is %s bytes. '
+                            % (int_formatter(length),
+                            int_formatter(max_length)))
 
     try:
         result = trans.transform()
     except Exception, e:
-        log.debug('Transformation of %s failed. %s: %s', url, e.__class__.__name__, e)
+        log.debug('Transformation of %s failed. %s: %s', url,
+            e.__class__.__name__, e)
         raise ResourceError("Data Transformation Error",
-                            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
-    indent=None
+            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
+    indent = None
 
     result["url"] = url
     result["length"] = length or 0
 
-    # Check a few cells to see if this is secretly HTML, more than three < in the fields
-    # is a random heuristic that may work. Or not.
+    # Check a few cells to see if this is secretly HTML, more than three <
+    # in the fields is a random heuristic that may work. Or not.
     count = 0
-    for f in result.get('fields',[]):
+    for f in result.get('fields', []):
         count += str(f).count('<')
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:
-            return error(title="Invalid content", message="This content appears to be HTML and not CSV")
+            return error(title="Invalid content",
+                message="This content appears to be HTML and not CSV")
 
-    if query.has_key('indent'):
-        indent=int(query.getfirst('indent'))
+    if 'indent' in query:
+        indent = int(query.getfirst('indent'))
 
     return json.dumps(result, indent=indent)

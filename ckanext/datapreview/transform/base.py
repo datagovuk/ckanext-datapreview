@@ -35,7 +35,7 @@ class Transformer(object):
         self.flow = flow
         self.url = url
         self.query = query
-
+        self.open_data = query['handler']
         self.requires_size_limit = True
 
         self.max_results = 500

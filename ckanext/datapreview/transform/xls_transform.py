@@ -19,7 +19,7 @@ class XLSTransformer(base.Transformer):
             self.sheet_number = 0
 
     def transform(self):
-        handle = urllib2.urlopen(self.url)
+        handle = self.open_data(self.url)
 
         src = ds.XLSDataSource(handle, sheet = self.sheet_number)
         src.initialize()

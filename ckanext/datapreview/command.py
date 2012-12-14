@@ -7,6 +7,7 @@ import time
 import sys
 import requests
 import urlparse
+import urllib
 
 from pylons import config
 from ckan.lib.cli import CkanCommand
@@ -43,17 +44,17 @@ class PrepResourceCache(CkanCommand):
 
         r = model.Resource.get(self.args[0])
         if not r:
-            print 'Cannot find resource - ' + self.args[0]
+            log.info('Cannot find resource - ' + self.args[0])
             return
 
         if r.cache_url:
-            print 'Already has a cache_url ' + r.cache_url
+            log.info('Already has a cache_url ' + r.cache_url)
 
         folder = os.path.join("/tmp/%s" % (self.args[0][0:2],), self.args[0])
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        print "Fetching " + r.url
+        log.info("Fetching " + r.url)
         req = requests.get(r.url)
         filename = os.path.basename(urlparse.urlparse(r.url).path)
         p = os.path.join(folder, filename)
@@ -61,11 +62,6 @@ class PrepResourceCache(CkanCommand):
             f.write(req.content)
 
         root = "%s%s/%s/%s" % (config.get('ckan.cache_url_root'),self.args[0][0:2],self.args[0],filename)
-        print root
-        r.cache_url = root
+        r.cache_url = root.replace(' ', '%20')
         model.Session.add(r)
         model.Session.commit()
-
-
-#ckan.cache_url_root = http://localhost:5000/data/resource_cache/
-
