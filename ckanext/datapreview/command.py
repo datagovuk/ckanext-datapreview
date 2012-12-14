@@ -2,17 +2,22 @@ import collections
 import logging
 import datetime
 import os
+import sys
 import re
 import time
 import sys
+import json
 import requests
 import urlparse
 import urllib
 
+from sqlalchemy import func
 from pylons import config
 from ckan.lib.cli import CkanCommand
 # No other CKAN imports allowed until _load_config is run,
 # or logging is disabled
+
+log = logging.getLogger(__file__)
 
 class PrepResourceCache(CkanCommand):
     """"""
@@ -65,3 +70,60 @@ class PrepResourceCache(CkanCommand):
         r.cache_url = root.replace(' ', '%20')
         model.Session.add(r)
         model.Session.commit()
+
+
+class StrawPollPreviewTest(CkanCommand):
+    """"""
+    summary = __doc__.split('\n')[0]
+    usage = __doc__
+    max_args = 1
+    min_args = 0
+
+    def __init__(self, name):
+        super(StrawPollPreviewTest, self).__init__(name)
+
+    def command(self):
+        """ Helpful command for development """
+        from ckan.logic import get_action
+        import urlparse, operator
+
+        self._load_config()
+        log = logging.getLogger(__name__)
+
+        import ckan.model as model
+        model.Session.remove()
+        model.Session.configure(bind=model.meta.engine)
+        model.repo.new_revision()
+
+        formats = ['csv', 'xml', 'txt', 'xls']
+        if len(self.args) == 1:
+            formats = self.args[0].split(',')
+
+        log.info("Processing %s" % ' and '.join(formats))
+        for fmt in formats:
+            q = model.Session.query(model.Resource)\
+                .filter(func.lower(model.Resource.format)==func.lower(fmt))\
+                .filter(model.Resource.state=='active')
+            cnt = q.count()
+            records = q.order_by(func.random()).limit(10).all()
+            log.info( "We have %d records from %d files of %s format" % (len(records), cnt, fmt))
+
+            for r in records:
+                success, msg = self._test_resource(r)
+                if success:
+                    log.info("  OK - %s" % r.id)
+                else:
+                    log.info("  Fail - %s - %s" % (r.id, msg))
+
+    def _test_resource(self, resource):
+        url = 'http://localhost:5000/data/preview/%s' % (resource.id)
+        req = requests.get(url)
+        if not req.status_code == 200:
+            return False, "Server returned %d" % req.status_code
+
+        data = json.loads(req.content)
+        if 'error' in data:
+            return False, "Received error %s" % data
+
+        return True, ""
+

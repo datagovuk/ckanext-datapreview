@@ -29,6 +29,6 @@ setup(
 
         [paste.paster_command]
         prepresourcecache = ckanext.datapreview.command:PrepResourceCache
-
+        strawpollpreviewtest = ckanext.datapreview.command:StrawPollPreviewTest
 	""",
 )

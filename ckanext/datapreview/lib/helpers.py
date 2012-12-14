@@ -103,7 +103,9 @@ def _open_file(url):
     return open(url, 'r')
 
 def _open_url(url):
-    return urllib2.urlopen(url)
+    """ URLs with &pound; in, just so, so wrong. """
+    return urllib2.urlopen(url.encode('utf-8'))
+
 
 def proxy_query(resource, url, query):
     parts = urlparse.urlparse(url)
@@ -146,13 +148,13 @@ def proxy_query(resource, url, query):
                             % (int_formatter(length),
                             int_formatter(max_length)))
 
-    try:
-        result = trans.transform()
-    except Exception, e:
-        log.debug('Transformation of %s failed. %s: %s', url,
-            e.__class__.__name__, e)
-        raise ResourceError("Data Transformation Error",
-            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
+#    try:
+    result = trans.transform()
+#    except Exception, e:
+#        log.debug('Transformation of %s failed. %s: %s', url,
+#            e.__class__.__name__, e)
+#        raise ResourceError("Data Transformation Error",
+#            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
     indent = None
 
     result["url"] = url

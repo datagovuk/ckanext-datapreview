@@ -15,12 +15,12 @@ class CSVTransformer(Transformer):
         self.requires_size_limit = False
 
         if 'encoding' in self.query:
-            self.encoding = self.query["encoding"].value
+            self.encoding = self.query["encoding"]
         else:
             self.encoding = 'utf-8'
 
         if 'dialect' in self.query:
-            self.dialect = self.query["dialect"].value
+            self.dialect = self.query["dialect"]
         else:
             self.dialect = None
 
@@ -33,7 +33,7 @@ class CSVTransformer(Transformer):
             else:
                 self.dialect = 'excel'
 
-        src = ds.CSVDataSource(handle, encoding = self.encoding, dialect=self.dialect)
+        src = ds.CSVDataSource(handle, encoding=self.encoding, dialect=self.dialect)
         src.initialize()
 
         result = self.read_source_rows(src)
