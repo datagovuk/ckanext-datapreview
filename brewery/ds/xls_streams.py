@@ -17,8 +17,7 @@ class XLRDFilter(object):
         self.f = mylogfile
 
     def write(self, data):
-        if "NOTE *** Ignoring non-worksheet data" not in data:
-            self.f.write(data)
+        return
 
 class XLSDataSource(base.DataSource):
     """Reading Microsoft Excel XLS Files
@@ -50,7 +49,7 @@ class XLSDataSource(base.DataSource):
 
         self.file, self.close_file = base.open_resource(self.resource)
 
-        self.workbook = xlrd.open_workbook(file_contents=self.file.read(),logfile=XLRDFilter())
+        self.workbook = xlrd.open_workbook(file_contents=self.file.read(), logfile=XLRDFilter())
 
         if not self.sheet_reference:
             self.sheet_reference = 0
