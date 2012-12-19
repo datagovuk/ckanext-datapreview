@@ -57,6 +57,7 @@ class DataPreviewController(BaseController):
             log.error(e)
             result = _error(title=e.title, message=e.message)
 
+        query['url'] = resource.cache_url or resource.url
         fmt = request.params.get('callback')
         if fmt:
             return "%s(%s)" % (fmt, result)
