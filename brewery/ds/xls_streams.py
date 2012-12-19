@@ -1,3 +1,4 @@
+import sys
 import base
 import datetime
 
@@ -5,6 +6,19 @@ try:
     import xlrd
 except ImportError: # xlrd not installed
     pass
+
+class XLRDFilter(object):
+    """
+        Unfortunately there appears to be a bug in XLRD where
+        output is written to stdout, but not checked for verbosity
+        level. This filter ignore that single item.
+    """
+    def __init__(self, mylogfile=sys.stdout):
+        self.f = mylogfile
+
+    def write(self, data):
+        if "NOTE *** Ignoring non-worksheet data" not in data:
+            self.f.write(data)
 
 class XLSDataSource(base.DataSource):
     """Reading Microsoft Excel XLS Files
@@ -36,7 +50,7 @@ class XLSDataSource(base.DataSource):
 
         self.file, self.close_file = base.open_resource(self.resource)
 
-        self.workbook = xlrd.open_workbook(file_contents=self.file.read())
+        self.workbook = xlrd.open_workbook(file_contents=self.file.read(),logfile=XLRDFilter())
 
         if not self.sheet_reference:
             self.sheet_reference = 0
