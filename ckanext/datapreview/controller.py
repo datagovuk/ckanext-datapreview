@@ -57,8 +57,6 @@ class DataPreviewController(BaseController):
             log.error(e)
             result = _error(title=e.title, message=e.message)
 
-        # Fake the URL in case we loaded locally from disk
-        result['url'] = resource.cache_url or resource.url
 
         fmt = request.params.get('callback')
         if fmt:

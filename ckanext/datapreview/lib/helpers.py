@@ -157,7 +157,11 @@ def proxy_query(resource, url, query):
             "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
     indent = None
 
-    result["url"] = url
+    if url.startswith('http'):
+        result["url"] = url
+    else:
+        result["url"] = resource.cache_url or resource.url
+
     result["length"] = length or 0
 
     # Check a few cells to see if this is secretly HTML, more than three <
