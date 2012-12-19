@@ -25,7 +25,8 @@ class XLSTransformer(base.Transformer):
         src.initialize()
 
         result = self.read_source_rows(src)
-        handle.close()
+        if hasattr(handle, 'close'):
+            handle.close()
 
         return result
 

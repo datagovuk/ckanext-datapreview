@@ -104,7 +104,7 @@ def _open_file(url):
 
 def _open_url(url):
     """ URLs with &pound; in, just so, so wrong. """
-    return urllib2.urlopen(url.encode('utf-8'))
+    return requests.get(url.encode('utf-8'), prefetch=False).raw
 
 
 def proxy_query(resource, url, query):
@@ -168,7 +168,7 @@ def proxy_query(resource, url, query):
     # in the fields is a random heuristic that may work. Or not.
     count = 0
     for f in result.get('fields', []):
-        count += str(f).count('<')
+        count += unicode(f).count('<')
 
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:

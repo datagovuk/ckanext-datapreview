@@ -25,7 +25,9 @@ class PlainTransformer(Transformer):
                     "fields": ["data"],
                     "data": [["%s" % (handle.read())]]
                   }
-        handle.close()
+
+        if hasattr(handle, 'close'):
+            handle.close()
 
         return result
 

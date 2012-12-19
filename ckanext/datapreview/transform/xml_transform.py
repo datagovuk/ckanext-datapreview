@@ -28,6 +28,7 @@ class XMLTransformer(Transformer):
                     "fields": ["data"],
                     "data": [["%s" % (pretty)]]
                   }
-        handle.close()
+        if hasattr(handle, 'close'):
+            handle.close()
 
         return result
