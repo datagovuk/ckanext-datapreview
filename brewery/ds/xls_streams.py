@@ -15,11 +15,11 @@ class XLSDataSource(base.DataSource):
     """
     def __init__(self, resource, sheet = None, read_header = True):
         """Creates a XLS spreadsheet data source stream.
-        
+
         :Attributes:
             * resource: file name, URL or file-like object
             * sheet: sheet index number (as int) or sheet name (as str)
-            * read_header: flag determining whether first line contains header or not. 
+            * read_header: flag determining whether first line contains header or not.
                 ``True`` by default.
         """
         self.resource = resource
@@ -29,7 +29,7 @@ class XLSDataSource(base.DataSource):
         self.skip_rows = 0
         self._fields = None
         self.close_file = True
-        
+
     def initialize(self):
         """Initialize XLS source stream:
         """
@@ -47,13 +47,13 @@ class XLSDataSource(base.DataSource):
             self.sheet = self.workbook.sheet_by_name(self.sheet_reference)
 
         self.row_count = self.sheet.nrows
-        
+
         self._read_fields()
 
     def finalize(self):
         if self.file and self.close_file:
             self.file.close()
-        
+
     def rows(self):
         if not self.sheet:
             raise RuntimeError("XLS Stream is not initialized - there is no sheet")
@@ -63,7 +63,7 @@ class XLSDataSource(base.DataSource):
         if not self._fields:
             raise ValueError("Fields are not initialized in CSV source")
         return self._fields
-        
+
     def set_fields(self, fields):
         self._fields = fields
 
@@ -92,26 +92,26 @@ class XLSIterator(object):
     def next(self):
         if self.current_row >= self.row_count:
             raise StopIteration
-            
+
         row = self.sheet.row(self.current_row)
         row = [self._cell_value(cell) for cell in row]
         self.current_row += 1
         return row
-        
+
     def _cell_value(self, cell):
         """Convert Excel cell into value of a python type
-        
+
         (from Swiss XlsReader.cell_to_python)"""
-        
+
         # annoying need book argument for datemode
         # info on types: http://www.lexicon.net/sjmachin/xlrd.html#xlrd.Cell-class
-        if cell.ctype == xlrd.XL_CELL_NUMBER: 
+        if cell.ctype == xlrd.XL_CELL_NUMBER:
             return float(cell.value)
         elif cell.ctype == xlrd.XL_CELL_DATE:
             # TODO: distinguish date and datetime
             args = xlrd.xldate_as_tuple(cell.value, self.workbook.datemode)
             try:
-                return datetime.date(args[0], args[1], args[2])
+                return datetime.date(args[0], args[1], args[2]).strftime("%d/%m/%Y")
             except Exception, inst:
                 # print 'Error parsing excel date (%s): %s' % (args, inst)
                 return None

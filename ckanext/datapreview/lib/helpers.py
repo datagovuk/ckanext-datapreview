@@ -148,13 +148,13 @@ def proxy_query(resource, url, query):
                             % (int_formatter(length),
                             int_formatter(max_length)))
 
-#    try:
-    result = trans.transform()
-#    except Exception, e:
-#        log.debug('Transformation of %s failed. %s: %s', url,
-#            e.__class__.__name__, e)
-#        raise ResourceError("Data Transformation Error",
-#            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
+    try:
+        result = trans.transform()
+    except Exception, e:
+        log.debug('Transformation of %s failed. %s: %s', url,
+            e.__class__.__name__, e)
+        raise ResourceError("Data Transformation Error",
+            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
     indent = None
 
     result["url"] = url
@@ -165,10 +165,11 @@ def proxy_query(resource, url, query):
     count = 0
     for f in result.get('fields', []):
         count += str(f).count('<')
+
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:
             return error(title="Invalid content",
-                message="This content appears to be HTML and not CSV")
+                message="This content appears to be HTML and not tabular data")
 
     if 'indent' in query:
         indent = int(query.getfirst('indent'))
