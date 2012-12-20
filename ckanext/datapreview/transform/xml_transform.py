@@ -1,6 +1,7 @@
 """Data Proxy - CSV transformation adapter"""
 import urllib2
 import xml.dom.minidom
+from xml.parsers.expat import ExpatError
 from ckanext.datapreview.transform.base import Transformer
 import brewery.ds as ds
 
@@ -22,12 +23,25 @@ class XMLTransformer(Transformer):
     def transform(self):
         handle = self.open_data(self.url)
 
-        dom = xml.dom.minidom.parseString(handle.read())
-        pretty = dom.toprettyxml(indent='   ')
+        data = handle.read()
+        print data[0:50]
+        try:
+            dom = xml.dom.minidom.parseString(data)
+            pretty = dom.toprettyxml(indent='   ')
+        except ExpatError as ee:
+            if hasattr(handle, 'close'):
+                handle.close()
+
+            return dict(title="Invalid content",
+                    message="This content does not appear to be valid XML")
+        except Exception as e:
+            print self.url
+            raise e
         result = {
                     "fields": ["data"],
                     "data": [["%s" % (pretty)]]
                   }
+
         if hasattr(handle, 'close'):
             handle.close()
 

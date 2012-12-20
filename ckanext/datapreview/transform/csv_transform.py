@@ -24,6 +24,16 @@ class CSVTransformer(Transformer):
         else:
             self.dialect = None
 
+    def _might_be_html(self, content):
+        count = content.count('<')
+
+        if count >= 3:
+            if content.count('>') > 1:
+                return dict(title="Invalid content",
+                    message="This content appears to be HTML and not tabular data")
+        return None
+
+
     def transform(self):
         handle = self.open_data(self.url)
 
@@ -36,7 +46,21 @@ class CSVTransformer(Transformer):
         src = ds.CSVDataSource(handle, encoding=self.encoding, dialect=self.dialect)
         src.initialize()
 
-        result = self.read_source_rows(src)
+        try:
+            result = self.read_source_rows(src)
+        except:
+            # We so often get HTML when someone tells us it is CSV
+            # that we will have this extra special check JUST for this
+            # use-case.
+            if hasattr(handle, 'close'):
+                handle.close()
+
+            check = self._might_be_html(self.open_data(self.url).read())
+            if check:
+                return check
+            raise
+
+
         if hasattr(handle, 'close'):
             handle.close()
 

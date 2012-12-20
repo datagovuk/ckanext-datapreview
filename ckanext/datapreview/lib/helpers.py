@@ -14,8 +14,9 @@ REDIRECT_LIMIT = 3
 def get_resource_length(url, required = False, redirects = 0):
     """Get length of a resource either from a head request to the url, or checking the
     size on disk """
+    log.info('Getting resource length of %s' % url)
     if not url.startswith('http'):
-        log.debug('Retrieved file size from disk')
+        log.debug('Retrieved file size from disk - %s' % url)
         return os.path.getsize(url)
 
     response = None
@@ -37,7 +38,15 @@ def get_resource_length(url, required = False, redirects = 0):
                 'Resource %s moved, but no Location provided by resource server'
                 % (url))
 
-        return get_resource_length(headers["location"], required=required,
+
+        # if our redirect location is relative, then we can only assume
+        # it is relative to the url we've just requested.
+        if not headers['location'].startswith('http'):
+            loc = urlparse.urljoin(url, headers['location'])
+        else:
+            loc = headers['location']
+
+        return get_resource_length(loc, required=required,
             redirects=redirects + 1)
 
 
@@ -103,8 +112,13 @@ def _open_file(url):
     return open(url, 'r')
 
 def _open_url(url):
-    """ URLs with &pound; in, just so, so wrong. """
-    return requests.get(url.encode('utf-8'), prefetch=False).raw
+    """ URLs with &pound; in, just so, so wrong. We also
+        can't accept gzip,deflate because gzip lib doesn't
+        support working with streams (until 3.2) and we don't
+        want to hold the entire file in memory """
+    r = requests.get(url.encode('utf-8'), prefetch=False,
+                     headers={'accept-encoding': 'identity'})
+    return r.raw
 
 
 def proxy_query(resource, url, query):
@@ -150,6 +164,11 @@ def proxy_query(resource, url, query):
 
     try:
         result = trans.transform()
+    except StopIteration as si:
+        # In all likelihood, there was no data to read
+        log.debug('Transformation of %s failed. %s', url,si)
+        raise ResourceError("Data Transformation Error",
+            "There was a problem reading the resource data")
     except Exception, e:
         log.debug('Transformation of %s failed. %s: %s', url,
             e.__class__.__name__, e)
