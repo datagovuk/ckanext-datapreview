@@ -116,7 +116,8 @@ class StrawPollPreviewTest(CkanCommand):
                     log.info("  Fail - %s - %s" % (r.id, msg))
 
     def _test_resource(self, resource):
-        url = 'http://localhost:5000/data/preview/%s' % (resource.id)
+        host = config['ckan.site_url']
+        url = '%s/data/preview/%s' % (host, resource.id)
         req = requests.get(url)
         if not req.status_code == 200:
             return False, "Server returned %d" % req.status_code
