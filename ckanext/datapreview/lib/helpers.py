@@ -194,7 +194,7 @@ def proxy_query(resource, url, query):
     # in the fields is a random heuristic that may work. Or not.
     count = 0
     for f in result.get('fields', []):
-        count += unicode(f).count('<')
+        count += f.count('<')
 
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:
