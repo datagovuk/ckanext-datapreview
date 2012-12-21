@@ -30,6 +30,9 @@ class CSVTransformer(Transformer):
 
     def transform(self):
         handle = self.open_data(self.url)
+        if not handle:
+            return dict(title="Remote resource missing",
+                message="Unable to load the remote resource")
 
         if not self.dialect:
             if self.url.endswith('.tsv'):

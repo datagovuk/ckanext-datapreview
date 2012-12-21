@@ -23,6 +23,9 @@ class XMLTransformer(Transformer):
 
     def transform(self):
         handle = self.open_data(self.url)
+        if not handle:
+            return dict(title="Remote resource missing",
+                message="Unable to load the remote resource")
 
         data = handle.read()
         print data[0:50]
