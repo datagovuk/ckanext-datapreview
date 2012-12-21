@@ -112,7 +112,7 @@ def int_formatter(value, places=3, seperator=u','):
     return seperator.join(parts)
 
 def _open_file(url):
-    return open(url, 'r')
+    return open(url.encode('utf-8','ignore'), 'r')
 
 def _open_url(url):
     """ URLs with &pound; in, just so, so wrong. We also
