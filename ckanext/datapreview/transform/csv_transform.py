@@ -4,6 +4,7 @@ import csv
 from ckanext.datapreview.transform.base import Transformer
 import brewery.ds as ds
 
+
 try:
     import json
 except ImportError:
@@ -52,17 +53,14 @@ class CSVTransformer(Transformer):
             # We so often get HTML when someone tells us it is CSV
             # that we will have this extra special check JUST for this
             # use-case.
-            if hasattr(handle, 'close'):
-                handle.close()
+            self.close_stream(handle)
 
             check = self._might_be_html(self.open_data(self.url).read())
             if check:
                 return check
             raise
 
-
-        if hasattr(handle, 'close'):
-            handle.close()
+        self.close_stream(handle)
 
         return result
 

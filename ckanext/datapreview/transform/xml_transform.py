@@ -3,6 +3,7 @@ import urllib2
 import xml.dom.minidom
 from xml.parsers.expat import ExpatError
 from ckanext.datapreview.transform.base import Transformer
+
 import brewery.ds as ds
 
 try:
@@ -29,8 +30,7 @@ class XMLTransformer(Transformer):
             dom = xml.dom.minidom.parseString(data)
             pretty = dom.toprettyxml(indent='   ')
         except ExpatError as ee:
-            if hasattr(handle, 'close'):
-                handle.close()
+            self.close_stream(handle)
 
             return dict(title="Invalid content",
                     message="This content does not appear to be valid XML")
@@ -42,7 +42,6 @@ class XMLTransformer(Transformer):
                     "data": [["%s" % (pretty)]]
                   }
 
-        if hasattr(handle, 'close'):
-            handle.close()
+        self.close_stream(handle)
 
         return result

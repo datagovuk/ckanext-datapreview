@@ -55,10 +55,13 @@ def get_resource_length(url, required = False, redirects = 0):
         return length
 
     if required:
-        log.error('No content-length returned for server: %s'
-                                % (url))
-        raise ResourceError("Unable to get content length",
-                                'Unable to find the size of the remote resource')
+        # Content length not always set with content-disposition so we will
+        # just have to take a flyer on it.
+        if not 'content-disposition' in headers:
+            log.error('No content-length returned for server: %s'
+                                    % (url))
+            raise ResourceError("Unable to get content length",
+                                    'Unable to find the size of the remote resource')
     return None
 
 def error(**vars):
@@ -118,6 +121,9 @@ def _open_url(url):
         want to hold the entire file in memory """
     r = requests.get(url.encode('utf-8'), prefetch=False,
                      headers={'accept-encoding': 'identity'})
+    if r.status_code == 404:
+        return None
+
     return r.raw
 
 
@@ -155,7 +161,7 @@ def proxy_query(resource, url, query):
 
     max_length = query['size_limit']
 
-    if length and trans.requires_size_limit and length > max_length:
+    if length and trans.requires_size_limit and int(length) > max_length:
         raise ResourceError('The requested file is too large to download',
                             'Requested resource is %s bytes. '
                             'Size limit is %s bytes. '
@@ -174,6 +180,7 @@ def proxy_query(resource, url, query):
             e.__class__.__name__, e)
         raise ResourceError("Data Transformation Error",
             "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
+
     indent = None
 
     if url.startswith('http'):

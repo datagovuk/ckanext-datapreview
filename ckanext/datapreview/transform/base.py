@@ -50,6 +50,11 @@ class Transformer(object):
         else:
             self.audit = False
 
+    def close_stream(self, handle):
+        if handle and hasattr(handle, 'close'):
+            handle.close()
+
+
     def read_source_rows(self, src):
         if self.audit:
             stats = {}

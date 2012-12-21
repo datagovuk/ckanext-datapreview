@@ -20,14 +20,17 @@ class PlainTransformer(Transformer):
 
     def transform(self):
         handle = self.open_data(self.url)
+        if not handle:
+            return dict(title="Remote resource missing",
+                message="Unable to load the remote resource")
 
+        data = handle.read().decode('utf-8', 'ignore')
         result = {
                     "fields": ["data"],
-                    "data": [["%s" % (handle.read())]]
+                    "data": [["%s" % (data)]]
                   }
 
-        if hasattr(handle, 'close'):
-            handle.close()
+        self.close_stream(handle)
 
         return result
 
