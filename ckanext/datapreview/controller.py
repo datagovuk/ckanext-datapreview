@@ -80,6 +80,7 @@ class DataPreviewController(BaseController):
                     resource.cache_url[len(url_root):])
                 if os.path.exists(possible):
                     url = possible
+                    log.info("Using local_file at %s" % url)
 
             if not url:  # If not found on disk
                 r = requests.head(resource.cache_url)
