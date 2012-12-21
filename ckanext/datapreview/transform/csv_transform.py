@@ -15,15 +15,8 @@ class CSVTransformer(Transformer):
         super(CSVTransformer, self).__init__(resource, url, query)
         self.requires_size_limit = False
 
-        if 'encoding' in self.query:
-            self.encoding = self.query["encoding"]
-        else:
-            self.encoding = 'utf-8'
-
-        if 'dialect' in self.query:
-            self.dialect = self.query["dialect"]
-        else:
-            self.dialect = None
+        self.encoding = self.query.get("encoding", 'utf-8')
+        self.dialect = self.query.get("dialect")
 
     def _might_be_html(self, content):
         count = content.count('<')
