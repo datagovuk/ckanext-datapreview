@@ -170,7 +170,7 @@ def proxy_query(resource, url, query):
                             int_formatter(max_length)))
 
     try:
-    result = trans.transform()
+        result = trans.transform()
     except StopIteration as si:
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url,si)
