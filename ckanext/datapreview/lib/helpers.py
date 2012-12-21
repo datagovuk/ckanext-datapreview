@@ -14,9 +14,8 @@ REDIRECT_LIMIT = 3
 def get_resource_length(url, required = False, redirects = 0):
     """Get length of a resource either from a head request to the url, or checking the
     size on disk """
-    log.info('Getting resource length of %s' % url)
+    log.debug('Getting resource length of %s' % url)
     if not url.startswith('http'):
-        log.debug('Retrieved file size from disk - %s' % url)
         return os.path.getsize(url)
 
     response = None
@@ -112,7 +111,6 @@ def int_formatter(value, places=3, seperator=u','):
     return seperator.join(parts)
 
 def _open_file(url):
-    log.info(url)
     return open(url, 'r')
 
 def _open_url(url):
