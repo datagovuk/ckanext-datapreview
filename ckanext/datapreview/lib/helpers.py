@@ -112,7 +112,7 @@ def int_formatter(value, places=3, seperator=u','):
     return seperator.join(parts)
 
 def _open_file(url):
-    return open(url.encode('utf-8','ignore'), 'r')
+    return open(url, 'r')
 
 def _open_url(url):
     """ URLs with &pound; in, just so, so wrong. We also
@@ -168,9 +168,9 @@ def proxy_query(resource, url, query):
                             % (int_formatter(length),
                             int_formatter(max_length)))
 
-    try:
-        result = trans.transform()
-    except StopIteration as si:
+    #try:
+    result = trans.transform()
+    """except StopIteration as si:
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url,si)
         raise ResourceError("Data Transformation Error",
@@ -180,7 +180,7 @@ def proxy_query(resource, url, query):
             e.__class__.__name__, e)
         raise ResourceError("Data Transformation Error",
             "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
-
+    """
     indent = None
 
     if url.startswith('http'):
