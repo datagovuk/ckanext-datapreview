@@ -28,7 +28,6 @@ class XMLTransformer(Transformer):
                 message="Unable to load the remote resource")
 
         data = handle.read()
-        print data[0:50]
         try:
             dom = xml.dom.minidom.parseString(data)
             pretty = dom.toprettyxml(indent='   ')
@@ -38,7 +37,6 @@ class XMLTransformer(Transformer):
             return dict(title="Invalid content",
                     message="This content does not appear to be valid XML")
         except Exception as e:
-            print self.url
             raise e
         result = {
                     "fields": ["data"],
