@@ -43,9 +43,9 @@ class PrepResourceCache(CkanCommand):
         model.Session.configure(bind=model.meta.engine)
         model.repo.new_revision()
 
-#        if not config.get('debug',True) or os.environ.get('DP_OVERRIDE'):
-#            print 'Do not run this on a production DB'
-#            return
+        if not config.get('debug',True) or os.environ.get('DP_OVERRIDE'):
+            print 'Do not run this on a production DB'
+            return
 
         r = model.Resource.get(self.args[0])
         if not r:
@@ -81,6 +81,11 @@ class StrawPollPreviewTest(CkanCommand):
 
     def __init__(self, name):
         super(StrawPollPreviewTest, self).__init__(name)
+        self.parser.add_option('-t', '--test',
+                               action='store_true',
+                               default=False,
+                               dest='test',
+                               help='Whether to compare to the jsondataproxy')
 
     def command(self):
         """ Helpful command for development """
@@ -88,7 +93,7 @@ class StrawPollPreviewTest(CkanCommand):
         import urlparse, operator
 
         self._load_config()
-        log = logging.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
 
         import ckan.model as model
         model.Session.remove()
@@ -109,15 +114,40 @@ class StrawPollPreviewTest(CkanCommand):
             log.info( "We have %d records from %d files of %s format" % (len(records), cnt, fmt))
 
             for r in records:
+                t0 = time.time()
                 success, msg = self._test_resource(r)
+                duration = time.time() - t0
+
                 if success:
-                    log.info("  OK - %s" % r.id)
+                    self.log.info("  OK (%0.2fs) - %s" % (duration, r.id))
                 else:
-                    log.info("  Fail - %s - %s" % (r.id, msg))
+                    self.log.info("  Fail (%0.2fs)- %s - %s" % (duration, r.id, msg))
+
+
+                if self.options.test:
+                    self._test_jsondataproxy(r)
+
+    def _test_jsondataproxy(self, resource):
+        t0 = time.time()
+        url = urlparse.urljoin('http://jsonpdataproxy.appspot.com/', '?url=%s&format=json' % (resource.url,))
+        req = requests.get(url)
+        duration = time.time() - t0
+
+        if not req.status_code == 200:
+            self.log.info("  Fail (%0.2fs) - JSON Data Proxy - %d on %s\n" % (duration, req.status_code, resource.url))
+            return
+
+        data = json.loads(req.content)
+        if 'error' in data:
+            self.log.info("  Fail (%0.2fs) - JSON Data Proxy -  %s\n" % (duration, data['error']))
+            return
+
+        self.log.info("  OK (%0.2fs) - JSON Data Proxy\n" % duration)
 
     def _test_resource(self, resource):
+
         host = config['ckan.site_url']
-        url = '%s/data/preview/%s' % (host, resource.id)
+        url = urlparse.urljoin(host, '/data/preview/%s' % (resource.id,))
         req = requests.get(url)
         if not req.status_code == 200:
             return False, "Server returned %d" % req.status_code
