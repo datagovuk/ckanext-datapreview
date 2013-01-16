@@ -6,6 +6,7 @@ import logging
 import json
 import requests
 from ckanext.datapreview.transform.base import transformer
+from ckanext.datapreview.lib.errors import *
 
 log = logging.getLogger('ckanext.datapreview.lib.helpers')
 
@@ -70,36 +71,6 @@ def get_resource_length(url, required = False, redirects = 0):
 def error(**vars):
     return json.dumps(dict(error=vars), indent=4)
 
-class ProxyError(StandardError):
-    def __init__(self, title, message):
-        super(ProxyError, self).__init__()
-        self.title = title
-        self.message = message
-        self.error = "Error"
-
-class ResourceError(ProxyError):
-    def __init__(self, title, message):
-        super(ResourceError, self).__init__(title, message)
-        self.error = "Resource Error"
-
-class RequestError(ProxyError):
-    def __init__(self, title, message):
-        super(RequestError, self).__init__(title, message)
-        self.error = "Request Error"
-
-class HTTPResponseMarble(object):
-    def __init__(self, *k, **p):
-        self.__dict__['status'] = u'200 OK'
-        self.__dict__['status_format'] = u'unicode'
-        self.__dict__['header_list'] = [dict(name=u'Content-Type', value=u'text/html; charset=utf8')]
-        self.__dict__['header_list_format'] = u'unicode'
-        self.__dict__['body'] = []
-        self.__dict__['body_format'] = u'unicode'
-
-    def __setattr__(self, name, value):
-        if name not in self.__dict__:
-            raise AttributeError('No such attribute %s'%name)
-        self.__dict__[name] = value
 
 def int_formatter(value, places=3, seperator=u','):
     value = str(value)
@@ -173,6 +144,8 @@ def proxy_query(resource, url, query):
 
     try:
         result = trans.transform()
+    except ResourceError:
+        raise
     except StopIteration as si:
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url,si)
@@ -201,8 +174,9 @@ def proxy_query(resource, url, query):
 
     if count >= 3:
         if sum([f.count('>') for f in result['fields']]) > 1:
-            return error(title="Invalid content",
-                message="This content appears to be HTML and not tabular data")
+            raise ResourceError("Invalid format",
+                "The resource appears to be HTML")
+
 
     if 'indent' in query:
         indent = int(query.getfirst('indent'))

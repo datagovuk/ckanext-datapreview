@@ -1,6 +1,7 @@
 """Data Proxy - CSV transformation adapter"""
 import urllib2
 import csv
+from ckanext.datapreview.lib.errors import ResourceError
 from ckanext.datapreview.transform.base import Transformer
 import brewery.ds as ds
 
@@ -23,16 +24,17 @@ class CSVTransformer(Transformer):
 
         if count >= 3:
             if content.count('>') > 1:
-                return dict(title="Invalid content",
-                    message="This content appears to be HTML and not tabular data")
+                raise ResourceError("Invalid format",
+                    "The resource appears to be HTML")
+
         return None
 
 
     def transform(self):
         handle = self.open_data(self.url)
         if not handle:
-            return dict(title="Remote resource missing",
-                message="Unable to load the remote resource")
+            raise ResourceError("Remote resource missing",
+                "Unable to load the remote resource")
 
         if not self.dialect:
             if self.url.endswith('.tsv'):
@@ -45,7 +47,7 @@ class CSVTransformer(Transformer):
 
         try:
             result = self.read_source_rows(src)
-        except:
+        except Exception as e:
             # We so often get HTML when someone tells us it is CSV
             # that we will have this extra special check JUST for this
             # use-case.
@@ -54,7 +56,10 @@ class CSVTransformer(Transformer):
             check = self._might_be_html(self.open_data(self.url).read())
             if check:
                 return check
-            raise
+            raise ResourceError("Data Transformation Error",
+                "Failed to transform the resource")
+
+
 
         self.close_stream(handle)
 

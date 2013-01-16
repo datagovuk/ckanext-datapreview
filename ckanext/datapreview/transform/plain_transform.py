@@ -1,7 +1,7 @@
 """Data Proxy - Plain transformation adapter"""
 import urllib2
 from ckanext.datapreview.transform.base import Transformer
-
+from ckanext.datapreview.lib.errors import ResourceError
 try:
     import json
 except ImportError:
@@ -21,8 +21,8 @@ class PlainTransformer(Transformer):
     def transform(self):
         handle = self.open_data(self.url)
         if not handle:
-            return dict(title="Remote resource missing",
-                message="Unable to load the remote resource")
+            raise ResourceError("Remote resource missing",
+                "Unable to load the remote resource")
 
         data = handle.read().decode('utf-8', 'ignore')
         result = {

@@ -3,6 +3,7 @@ import urllib2
 import xlrd
 import base
 import brewery.ds as ds
+from ckanext.datapreview.lib.errors import ResourceError
 
 try:
     import json
@@ -23,8 +24,8 @@ class XLSTransformer(base.Transformer):
         handle = self.open_data(self.url)
 
         if not handle:
-            return dict(title="Remote resource missing",
-                message="Unable to load the remote resource")
+            raise ResourceError("Remote resource missing",
+                "Unable to load the remote resource")
 
         src = ds.XLSDataSource(handle, sheet = self.sheet_number)
 
@@ -32,20 +33,20 @@ class XLSTransformer(base.Transformer):
             src.initialize()
             result = self.read_source_rows(src)
         except ValueError:
-            return dict(title="Invalid content",
-                message="Unable to process the XLS file")
+            raise ResourceError("Invalid content",
+                "Unable to process the XLS file")
         except Exception as e:
             # Read the 100 bytes, and strip it. If first
             # char is < then it is HTML. Sigh.
             self.close_stream(handle)
             data = self.open_data(self.url).read(100)
             if not data.strip():
-                return dict(title="Invalid content",
-                    message="This resource does not appear to be an XLS file")
+                raise ResourceError("Invalid content",
+                    "This resource does not appear to be an XLS file")
 
             if data.strip()[0] == '<':
-                return dict(title="Invalid content",
-                    message="This content appears to be HTML and not tabular data")
+                raise ResourceError("Invalid content",
+                    "This content appears to be HTML and not tabular data")
             raise
 
 

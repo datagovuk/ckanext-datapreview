@@ -3,6 +3,7 @@ import urllib2
 import xml.dom.minidom
 from xml.parsers.expat import ExpatError
 from ckanext.datapreview.transform.base import Transformer
+from ckanext.datapreview.lib.errors import ResourceError
 
 import brewery.ds as ds
 
@@ -24,8 +25,8 @@ class XMLTransformer(Transformer):
     def transform(self):
         handle = self.open_data(self.url)
         if not handle:
-            return dict(title="Remote resource missing",
-                message="Unable to load the remote resource")
+            raise ResourceError("Remote resource missing",
+                "Unable to load the remote resource")
 
         data = handle.read()
         try:
@@ -33,9 +34,8 @@ class XMLTransformer(Transformer):
             pretty = dom.toprettyxml(indent='   ')
         except ExpatError as ee:
             self.close_stream(handle)
-
-            return dict(title="Invalid content",
-                    message="This content does not appear to be valid XML")
+            raise ResourceError("Invalid content",
+                "This content does not appear to be valid XML")
         except Exception as e:
             raise e
         result = {
