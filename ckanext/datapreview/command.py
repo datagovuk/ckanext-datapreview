@@ -140,7 +140,7 @@ class StrawPollPreviewTest(CkanCommand):
 
         data = json.loads(req.content)
         if 'error' in data:
-            self.log.info("  Fail (%0.2fs) - JSON Data Proxy -  %s\n" % (duration, data['error']))
+            self.log.info("  OK (%0.2fs) - JSON Data Proxy -  %s\n" % (duration, data['error']['title']))
             return
 
         self.log.info("  OK (%0.2fs) - JSON Data Proxy\n" % duration)
