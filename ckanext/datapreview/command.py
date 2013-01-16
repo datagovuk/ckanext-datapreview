@@ -111,7 +111,8 @@ class StrawPollPreviewTest(CkanCommand):
                 .filter(model.Resource.state=='active')
             cnt = q.count()
             records = q.order_by(func.random()).limit(10).all()
-            log.info( "We have %d records from %d files of %s format" % (len(records), cnt, fmt))
+            self.log.info( "We have %d records from %d files of %s format" % (len(records), cnt, fmt))
+            self.log.info("=" * 50)
 
             for r in records:
                 t0 = time.time()
