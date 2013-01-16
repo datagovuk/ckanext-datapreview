@@ -12,6 +12,7 @@ except ImportError:
 class XLSTransformer(base.Transformer):
     def __init__(self, resource, url, query):
         super(XLSTransformer, self).__init__(resource, url, query)
+        self.requires_size_limit = True
 
         if 'worksheet' in self.query:
             self.sheet_number = int(self.query.getfirst('worksheet'))

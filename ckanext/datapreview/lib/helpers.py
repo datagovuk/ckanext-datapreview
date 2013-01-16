@@ -158,7 +158,7 @@ def proxy_query(resource, url, query):
 
     log.debug('The file at %s has length %s', url, length)
 
-    max_length = query['size_limit']
+    max_length = int(query['size_limit'])
 
     if length and trans.requires_size_limit and int(length) > max_length:
         raise ResourceError('The requested file is too large to download',
