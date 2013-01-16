@@ -57,7 +57,7 @@ class CSVTransformer(Transformer):
             if check:
                 return check
             raise ResourceError("Data Transformation Error",
-                "Failed to transform the resource")
+                "Failed to transform the resource: %s" % e.message)
 
 
 
