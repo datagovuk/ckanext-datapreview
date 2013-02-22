@@ -7,6 +7,10 @@ class ProxyError(StandardError):
         self.message = message
         self.error = "Error"
 
+    def __str__(self):
+        return "%s => %s:%s" % (self.error, self.title, self.message)
+
+
 class ResourceError(ProxyError):
     def __init__(self, title, message):
         super(ResourceError, self).__init__(title, message)
