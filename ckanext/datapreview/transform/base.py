@@ -26,6 +26,8 @@ def transformer(type_name, resource, url, query):
     trans_class = find_transformer(extension=type_name)
     if not trans_class:
         trans_class = find_transformer(extension='*')
+    if not trans_class:
+        return None
 
     return trans_class(resource, url, query)
 

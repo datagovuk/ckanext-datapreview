@@ -123,10 +123,12 @@ def proxy_query(resource, url, query):
     resource_type = re.sub(r'^\.', '', resource_type.lower())
     try:
         trans = transformer(resource_type, resource, url, query)
+        if not trans:
+            raise Exception("No transformer for %s" % resource_type)
     except Exception, e:
         raise RequestError('Resource type not supported',
-                            'Transformation of resource of type %s is not supported. Reason: %s'
-                              % (resource_type, e))
+                            'Transformation of resource of type %s is not supported.'
+                              % (resource_type))
 
     length = query.get('length', get_resource_length(url,
         trans.requires_size_limit))
