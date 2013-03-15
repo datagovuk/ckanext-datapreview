@@ -10,7 +10,6 @@ class ProxyError(StandardError):
     def __str__(self):
         return "%s => %s:%s" % (self.error, self.title, self.message)
 
-
 class ResourceError(ProxyError):
     def __init__(self, title, message):
         super(ResourceError, self).__init__(title, message)
@@ -25,7 +24,8 @@ class HTTPResponseMarble(object):
     def __init__(self, *k, **p):
         self.__dict__['status'] = u'200 OK'
         self.__dict__['status_format'] = u'unicode'
-        self.__dict__['header_list'] = [dict(name=u'Content-Type', value=u'text/html; charset=utf8')]
+        self.__dict__['header_list'] = \
+            [dict(name=u'Content-Type', value=u'text/html; charset=utf8')]
         self.__dict__['header_list_format'] = u'unicode'
         self.__dict__['body'] = []
         self.__dict__['body_format'] = u'unicode'

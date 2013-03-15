@@ -6,13 +6,14 @@ import logging
 import json
 import requests
 from ckanext.datapreview.transform.base import transformer
-from ckanext.datapreview.lib.errors import *
+from ckanext.datapreview.lib.errors import (ResourceError, RequestError)
 
 log = logging.getLogger('ckanext.datapreview.lib.helpers')
 
 REDIRECT_LIMIT = 3
 
-def get_resource_length(url, required = False, redirects = 0):
+
+def get_resource_length(url, required=False, redirects=0):
     """Get length of a resource either from a head request to the url, or checking the
     size on disk """
     log.debug('Getting resource length of %s' % url)
@@ -42,7 +43,6 @@ def get_resource_length(url, required = False, redirects = 0):
                 'Resource %s moved, but no Location provided by resource server'
                 % (url))
 
-
         # if our redirect location is relative, then we can only assume
         # it is relative to the url we've just requested.
         if not headers['location'].startswith('http'):
@@ -52,7 +52,6 @@ def get_resource_length(url, required = False, redirects = 0):
 
         return get_resource_length(loc, required=required,
             redirects=redirects + 1)
-
 
     if 'content-length' in headers:
         length = int(headers['content-length'])
@@ -65,8 +64,9 @@ def get_resource_length(url, required = False, redirects = 0):
             log.error('No content-length returned for server: %s'
                                     % (url))
             raise ResourceError("Unable to get content length",
-                                    'Unable to find the size of the remote resource')
+                'Unable to find the size of the remote resource')
     return None
+
 
 def error(**vars):
     return json.dumps(dict(error=vars), indent=4)
@@ -85,8 +85,10 @@ def int_formatter(value, places=3, seperator=u','):
     parts.reverse()
     return seperator.join(parts)
 
+
 def _open_file(url):
     return open(url, 'r')
+
 
 def _open_url(url):
     """ URLs with &pound; in, just so, so wrong. """
@@ -115,7 +117,7 @@ def proxy_query(resource, url, query):
 
     if not resource_type:
         raise RequestError('Could not determine the resource type',
-                            'If file has no type extension, specify file type in type= option')
+            'If file has no type extension, specify file type in type= option')
 
     resource_type = re.sub(r'^\.', '', resource_type.lower())
     try:
@@ -124,8 +126,8 @@ def proxy_query(resource, url, query):
             raise Exception("No transformer for %s" % resource_type)
     except Exception, e:
         raise RequestError('Resource type not supported',
-                            'Transformation of resource of type %s is not supported.'
-                              % (resource_type))
+            'Transformation of resource of type %s is not supported.'
+            % (resource_type))
 
     length = query.get('length', get_resource_length(url,
         trans.requires_size_limit))
@@ -147,7 +149,7 @@ def proxy_query(resource, url, query):
         raise
     except StopIteration as si:
         # In all likelihood, there was no data to read
-        log.debug('Transformation of %s failed. %s', url,si)
+        log.debug('Transformation of %s failed. %s', url, si)
         raise ResourceError("Data Transformation Error",
             "There was a problem reading the resource data")
     except Exception, e:

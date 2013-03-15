@@ -1,14 +1,8 @@
 """Data Proxy - Messytables transformation adapter"""
-import urllib2
-import xlrd
 import base
 from ckanext.datapreview.lib.errors import ResourceError
 from messytables import AnyTableSet
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 class TabularTransformer(base.Transformer):
 
@@ -23,7 +17,6 @@ class TabularTransformer(base.Transformer):
 
         self.type = query.get('type')
 
-
     def transform(self):
         handle = self.open_data(self.url)
 
@@ -35,22 +28,22 @@ class TabularTransformer(base.Transformer):
         tables = table_set.tables
 
         tp = 0
+        rs = []
         while tp < len(tables):
             # Find a workable sheet with more than 0 rows
-            rowset = list(tables[tp])
-            if len(rowset) > 0:
+            rs = list(tables[tp])
+            if len(rs) > 0:
                 break
             tp += 1
 
         result = {
             "fields": [],
-            "data": [[unicode(c.value) for c in r] for r in rowset[:self.max_results]],
+            "data": [[unicode(c.value) for c in r] for r in rs[:self.max_results]],
             "max_results": self.max_results,
         }
-        if len(rowset):
-            result["fields"] = [unicode(c.value) for c in rowset.pop(0)]
+        if len(rs):
+            result["fields"] = [unicode(c.value) for c in rs.pop(0)]
 
         self.close_stream(handle)
 
         return result
-
