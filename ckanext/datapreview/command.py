@@ -100,7 +100,7 @@ class StrawPollPreviewTest(CkanCommand):
         model.Session.configure(bind=model.meta.engine)
         model.repo.new_revision()
 
-        formats = ['csv', 'xml', 'txt', 'xls']
+        formats = ['csv', 'xls']
         if len(self.args) == 1:
             formats = self.args[0].split(',')
 
@@ -110,7 +110,7 @@ class StrawPollPreviewTest(CkanCommand):
                 .filter(func.lower(model.Resource.format)==func.lower(fmt))\
                 .filter(model.Resource.state=='active')
             cnt = q.count()
-            records = q.order_by(func.random()).limit(10).all()
+            records = q.order_by(func.random()).limit(20).all()
             self.log.info("We have %d records from %d files of %s format" % (len(records), cnt, fmt))
             self.log.info("=" * 50)
 

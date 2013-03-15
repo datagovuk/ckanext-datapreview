@@ -89,16 +89,13 @@ def _open_file(url):
     return open(url, 'r')
 
 def _open_url(url):
-    """ URLs with &pound; in, just so, so wrong. We also
-        can't accept gzip,deflate because gzip lib doesn't
-        support working with streams (until 3.2) and we don't
-        want to hold the entire file in memory """
-    r = requests.get(url.encode('utf-8'), prefetch=False,
-                     headers={'accept-encoding': 'identity'})
-    if r.status_code == 404:
-        return None
+    """ URLs with &pound; in, just so, so wrong. """
+    try:
+        return urllib2.urlopen(url.encode("utf-8"))
+    except Exception, e:
+        log.error("URL %s caused: %s" % (url, e))
 
-    return r.raw
+    return None
 
 
 def proxy_query(resource, url, query):
@@ -157,7 +154,7 @@ def proxy_query(resource, url, query):
         log.debug('Transformation of %s failed. %s: %s', url,
             e.__class__.__name__, e)
         raise ResourceError("Data Transformation Error",
-            "Data transformation failed. %s: %s" % (e.__class__.__name__, e))
+            "Data transformation failed. %s" % (e))
 
     indent = None
 
@@ -167,18 +164,6 @@ def proxy_query(resource, url, query):
         result["url"] = resource.cache_url or resource.url
 
     result["length"] = length or 0
-
-    # Check a few cells to see if this is secretly HTML, more than three <
-    # in the fields is a random heuristic that may work. Or not.
-    count = 0
-    for f in result.get('fields', []):
-        count += f.count('<')
-
-    if count >= 3:
-        if sum([f.count('>') for f in result['fields']]) > 1:
-            raise ResourceError("Invalid format",
-                "The resource appears to be HTML")
-
 
     if 'indent' in query:
         indent = int(query.getfirst('indent'))

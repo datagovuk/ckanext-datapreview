@@ -1,5 +1,4 @@
 import sys
-import brewery.dq as dq
 
 transformers = []
 
@@ -39,7 +38,6 @@ class Transformer(object):
         self.query = query
         self.open_data = query['handler']
         self.requires_size_limit = True
-
         self.max_results = 500
         if "max-results" in query:
             try:
@@ -58,12 +56,6 @@ class Transformer(object):
 
 
     def read_source_rows(self, src):
-        if self.audit:
-            stats = {}
-            fields = src.field_names
-            for field in fields:
-                stats[field] = dq.FieldStatistics(field)
-
         rows = []
         record_count = 0
 

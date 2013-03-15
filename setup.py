@@ -20,8 +20,7 @@ setup(
 	include_package_data=True,
 	zip_safe=False,
 	install_requires=[
-	    'xlrd==0.8.0',
-        'requests==0.14',
+        'requests>=0.14',
 	],
 	entry_points=\
 	"""

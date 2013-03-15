@@ -32,7 +32,7 @@ class DataPreviewController(BaseController):
         except NotAuthorized, e:
             abort(403, "You are not permitted access to this resource")
 
-        size_limit = config.get('ckan.datapreview.limit', 1000000)
+        size_limit = config.get('ckan.datapreview.limit', 5000000)
 
         # We will use the resource specified format to determine what
         # type of file this is.  We could extend this to use the file
@@ -40,6 +40,9 @@ class DataPreviewController(BaseController):
         typ = request.params.get('type',
                                  resource.format.lower()
                                  if resource.format else '')
+
+        # TODO: We really need to know what the real type of this file
+        # is.  David's going to provide if via a resource extra in QA
 
         query = dict(type=typ, size_limit=size_limit)
 
