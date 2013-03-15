@@ -1,4 +1,5 @@
 import logging
+import sys
 from pylons import config
 import ckan.lib.helpers as h
 import ckan.plugins as p
@@ -14,6 +15,10 @@ class DataPreviewPlugin(p.SingletonPlugin):
     implements(p.IRoutes, inherit=True)
 
     def update_config(self, config):
+        # Work around an issue with XLRD 0.8 where it logs to stdout by
+        # accident (and wsgi tells it off).
+        sys.stdout = sys.stderr
+
         toolkit.add_template_directory(config, 'templates')
         toolkit.add_public_directory(config, 'public')
 
