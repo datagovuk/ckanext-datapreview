@@ -22,7 +22,7 @@ Once complete the datapreview should be added to your ckan.plugins property in t
 ## Requirements
 
 * __ckanext-archiver__ - for the resource cache
-* __messytables__ - Currently a branch at [github](https://github.com/okfn/messytables/tree/38-fix-buffered-file)
+* __messytables__ - from [github](https://github.com/okfn/messytables)
 
 
 ## Problems
