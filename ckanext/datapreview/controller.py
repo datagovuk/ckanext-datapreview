@@ -56,7 +56,7 @@ class DataPreviewController(BaseController):
             response.content_type = 'application/json'
             result = proxy_query(resource, url, query)
         except ProxyError as e:
-            log.error(e)
+            log.error("Request id {0}, {1}".format(id, e))
             result = _error(title=e.title, message=e.message)
 
         fmt = request.params.get('callback')
@@ -82,7 +82,7 @@ class DataPreviewController(BaseController):
                     resource.cache_url[len(url_root):]).encode('latin-1')
                 if os.path.exists(possible):
                     url = possible
-                    log.info("Using local_file at %s" % url)
+                    log.debug("Using local_file at %s" % url)
 
             if not url:  # If not found on disk try a head request
                 try:
@@ -94,7 +94,7 @@ class DataPreviewController(BaseController):
                         url = resource.cache_url
                         query['length'] = r.info()["content-length"]
                 except Exception, e:
-                    log.error(e)
+                    log.error("Request {0}, with url {1}, {2}".format(id, resource.cache_url, e))
 
         if not url:
             url = resource.url
