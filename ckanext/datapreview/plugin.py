@@ -1,11 +1,8 @@
 import logging
 import sys
 from pylons import config
-import ckan.lib.helpers as h
 import ckan.plugins as p
 from ckan.plugins import implements, toolkit
-from ckan.logic import get_action
-
 
 log = logging.getLogger('ckanext.datapreview')
 
@@ -23,16 +20,16 @@ class DataPreviewPlugin(p.SingletonPlugin):
         toolkit.add_public_directory(config, 'public')
 
     def after_map(self, map):
+        controller = 'ckanext.datapreview.controller:DataPreviewController'
         map.connect(
             '/data/preview/{id}',
-            controller='ckanext.datapreview.controller:DataPreviewController',
+            controller=controller,
             action='index'
         )
         if config.get('debug', False):
             map.connect(
                 '/data/resource_cache/{path:.*}',
-                controller='ckanext.datapreview.controller:DataPreviewController',
+                controller=controller,
                 action='serve'
             )
         return map
-

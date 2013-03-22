@@ -1,23 +1,18 @@
-import collections
+
 import logging
-import datetime
 import os
-import sys
-import re
 import time
-import sys
 import json
 import requests
 import urlparse
-import urllib
 
-from sqlalchemy import func
 from pylons import config
 from ckan.lib.cli import CkanCommand
 # No other CKAN imports allowed until _load_config is run,
 # or logging is disabled
 
 log = logging.getLogger(__file__)
+
 
 class PrepResourceCache(CkanCommand):
     """"""
@@ -29,11 +24,8 @@ class PrepResourceCache(CkanCommand):
     def __init__(self, name):
         super(PrepResourceCache, self).__init__(name)
 
-
     def command(self):
         """ Helpful command for development """
-        from ckan.logic import get_action
-        import urlparse, operator
 
         self._load_config()
         log = logging.getLogger(__name__)
@@ -43,7 +35,7 @@ class PrepResourceCache(CkanCommand):
         model.Session.configure(bind=model.meta.engine)
         model.repo.new_revision()
 
-        if not config.get('debug',True) or os.environ.get('DP_OVERRIDE'):
+        if not config.get('debug', True) or os.environ.get('DP_OVERRIDE'):
             print 'Do not run this on a production DB'
             return
 
@@ -66,7 +58,8 @@ class PrepResourceCache(CkanCommand):
         with open(p, 'w+b') as f:
             f.write(req.content)
 
-        root = "%s%s/%s/%s" % (config.get('ckan.cache_url_root'),self.args[0][0:2],self.args[0],filename)
+        root = "%s%s/%s/%s" % (config.get('ckan.cache_url_root'),
+            self.args[0][0:2], self.args[0], filename)
         r.cache_url = root.replace(' ', '%20')
         model.Session.add(r)
         model.Session.commit()
@@ -89,8 +82,7 @@ class StrawPollPreviewTest(CkanCommand):
 
     def command(self):
         """ Helpful command for development """
-        from ckan.logic import get_action
-        import urlparse, operator
+        from sqlalchemy import func
 
         self._load_config()
         self.log = logging.getLogger(__name__)
@@ -100,18 +92,19 @@ class StrawPollPreviewTest(CkanCommand):
         model.Session.configure(bind=model.meta.engine)
         model.repo.new_revision()
 
-        formats = ['csv', 'xml', 'txt', 'xls']
+        formats = ['csv', 'xls']
         if len(self.args) == 1:
             formats = self.args[0].split(',')
 
         log.info("Processing %s" % ' and '.join(formats))
         for fmt in formats:
             q = model.Session.query(model.Resource)\
-                .filter(func.lower(model.Resource.format)==func.lower(fmt))\
-                .filter(model.Resource.state=='active')
+                .filter(func.lower(model.Resource.format) == func.lower(fmt))\
+                .filter(model.Resource.state == 'active')
             cnt = q.count()
-            records = q.order_by(func.random()).limit(10).all()
-            self.log.info("We have %d records from %d files of %s format" % (len(records), cnt, fmt))
+            records = q.order_by(func.random()).limit(20).all()
+            self.log.info("We have %d records from %d files of %s format" %
+                          (len(records), cnt, fmt))
             self.log.info("=" * 50)
 
             for r in records:
@@ -122,25 +115,28 @@ class StrawPollPreviewTest(CkanCommand):
                 if success:
                     self.log.info("  OK (%0.2fs) - %s" % (duration, r.id))
                 else:
-                    self.log.info("  Fail (%0.2fs)- %s - %s" % (duration, r.id, msg))
-
+                    self.log.info("  Fail (%0.2fs)- %s - %s" %
+                                  (duration, r.id, msg))
 
                 if self.options.test:
                     self._test_jsondataproxy(r)
 
     def _test_jsondataproxy(self, resource):
         t0 = time.time()
-        url = urlparse.urljoin('http://jsonpdataproxy.appspot.com/', '?url=%s&format=json' % (resource.url,))
+        url = urlparse.urljoin('http://jsonpdataproxy.appspot.com/',
+                               '?url=%s&format=json' % (resource.url,))
         req = requests.get(url)
         duration = time.time() - t0
 
         if not req.status_code == 200:
-            self.log.info("  Fail (%0.2fs) - JSON Data Proxy - %d on %s\n" % (duration, req.status_code, resource.url))
+            self.log.info("  Fail (%0.2fs) - JSON Data Proxy - %d on %s\n" %
+                          (duration, req.status_code, resource.url))
             return
 
         data = json.loads(req.content)
         if 'error' in data:
-            self.log.info("  OK (%0.2fs) - JSON Data Proxy -  %s\n" % (duration, data['error']['title']))
+            self.log.info("  OK (%0.2fs) - JSON Data Proxy -  %s\n" %
+                          (duration, data['error']['title']))
             return
 
         self.log.info("  OK (%0.2fs) - JSON Data Proxy\n" % duration)
@@ -158,4 +154,3 @@ class StrawPollPreviewTest(CkanCommand):
             return False, "Received error %s" % data
 
         return True, ""
-

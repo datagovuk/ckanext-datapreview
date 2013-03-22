@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-import requests
+import urllib2
 from pylons import config
 import ckan.model as model
 from ckan.lib.base import (BaseController, c, request, response, abort)
@@ -10,7 +10,8 @@ from ckan.logic import check_access
 
 log = logging.getLogger('ckanext.datapreview')
 
-from ckanext.datapreview.lib.helpers import proxy_query, ProxyError
+from ckanext.datapreview.lib.helpers import proxy_query
+from ckanext.datapreview.lib.errors import ProxyError
 
 
 def _error(**vars):
@@ -25,18 +26,19 @@ class DataPreviewController(BaseController):
             abort(404, "Resource not found")
 
         context = {'model': model,
-                   'session':model.Session,
+                   'session': model.Session,
                    'user': c.user}
         try:
             check_access("resource_show", context, {'id': resource.id})
         except NotAuthorized, e:
             abort(403, "You are not permitted access to this resource")
 
-        size_limit = config.get('ckan.datapreview.limit', 1000000)
+        size_limit = config.get('ckan.datapreview.limit', 5000000)
 
         # We will use the resource specified format to determine what
-        # type of file this is.  We could extend this to use the file
-        # detector in cases where this is not set.
+        # type of file this is.  At some point QA will be providing a much
+        # more accurate idea of the file-type which will mean we can avoid
+        # those cases where HTML is marked as XLS, or XSL as CSV.
         typ = request.params.get('type',
                                  resource.format.lower()
                                  if resource.format else '')
@@ -54,9 +56,8 @@ class DataPreviewController(BaseController):
             response.content_type = 'application/json'
             result = proxy_query(resource, url, query)
         except ProxyError as e:
-            log.error(e)
+            log.error("Request id {0}, {1}".format(id, e))
             result = _error(title=e.title, message=e.message)
-
 
         fmt = request.params.get('callback')
         if fmt:
@@ -70,6 +71,7 @@ class DataPreviewController(BaseController):
         # 1. If there is a cache_url, guess where the local file might be
         # 2. cache_url, if set. If we get a 404 from the head request then ..
         # 3. resource url.
+
         url = None
 
         if hasattr(resource, 'cache_url') and resource.cache_url:
@@ -80,13 +82,19 @@ class DataPreviewController(BaseController):
                     resource.cache_url[len(url_root):]).encode('latin-1')
                 if os.path.exists(possible):
                     url = possible
-                    log.info("Using local_file at %s" % url)
+                    log.debug("Using local_file at %s" % url)
 
-            if not url:  # If not found on disk
-                r = requests.head(resource.cache_url)
-                if r.status_code == 200:
-                    url = resource.cache_url
-                    query['length'] = r.headers['content-length']
+            if not url:  # If not found on disk try a head request
+                try:
+                    req = urllib2.Request(resource.cache_url)
+                    req.get_method = lambda: 'HEAD'
+
+                    r = urllib2.urlopen(req)
+                    if r.getcode() == 200:
+                        url = resource.cache_url
+                        query['length'] = r.info()["content-length"]
+                except Exception, e:
+                    log.error("Request {0}, with url {1}, {2}".format(id, resource.cache_url, e))
 
         if not url:
             url = resource.url

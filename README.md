@@ -21,10 +21,9 @@ Once complete the datapreview should be added to your ckan.plugins property in t
 
 ## Requirements
 
-* __XLRD__ - retrieved by setup.py
 * __ckanext-archiver__ - for the resource cache
+* __messytables__ - Currently a branch at [github](https://github.com/okfn/messytables/tree/38-fix-buffered-file)
 
-As this extension is based on the dataproxy it is currently using the same old copy of brewery (0.5.0) which is not available in pypi (link for 0.5.0 version references tip in a HG repo). It is included in this source code repository.
 
 ## Problems
 
@@ -36,10 +35,4 @@ On data.gov.uk we have patched a local copy of recline to use the new dataprevie
 
 * Increases the limit on download size (doesn't have the appengine download limit)
 * Uses the local archive cache if it exists rather than hitting the remote site (only if ckanext-archiver has retrieved the file).
-
-
-
-
-
-
 
