@@ -56,7 +56,7 @@ class DataPreviewController(BaseController):
             response.content_type = 'application/json'
             result = proxy_query(resource, url, query)
         except ProxyError as e:
-            log.error("Request id {0}, {1}".format(id, e))
+            log.error("Request id {0}, {1}".format(resource.id, e))
             result = _error(title=e.title, message=e.message)
 
         fmt = request.params.get('callback')
@@ -86,7 +86,7 @@ class DataPreviewController(BaseController):
 
             if not url:  # If not found on disk try a head request
                 try:
-                    req = urllib2.Request(resource.cache_url)
+                    req = urllib2.Request(resource.cache_url.encode('utf8'))
                     req.get_method = lambda: 'HEAD'
 
                     r = urllib2.urlopen(req)
@@ -94,7 +94,7 @@ class DataPreviewController(BaseController):
                         url = resource.cache_url
                         query['length'] = r.info()["content-length"]
                 except Exception, e:
-                    log.error("Request {0}, with url {1}, {2}".format(id, resource.cache_url, e))
+                    log.error(u"Request {0}, with url {1}, {2}".format(resource.id, resource.cache_url, e))
 
         if not url:
             url = resource.url
