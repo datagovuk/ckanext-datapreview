@@ -79,6 +79,11 @@ class StrawPollPreviewTest(CkanCommand):
                                default=False,
                                dest='test',
                                help='Whether to compare to the jsondataproxy')
+        self.parser.add_option('-m', '--many',
+                               type='int',
+                               default=20,
+                               dest='count',
+                               help='Process n records')
 
     def command(self):
         """ Helpful command for development """
@@ -101,12 +106,15 @@ class StrawPollPreviewTest(CkanCommand):
             q = model.Session.query(model.Resource)\
                 .filter(func.lower(model.Resource.format) == func.lower(fmt))\
                 .filter(model.Resource.state == 'active')
-            cnt = q.count()
-            records = q.order_by(func.random()).limit(20).all()
+
+            total = q.count()
+            records = q.order_by(func.random()).limit(self.options.count).all()
+
             self.log.info("We have %d records from %d files of %s format" %
-                          (len(records), cnt, fmt))
+                          (len(records), total, fmt))
             self.log.info("=" * 50)
 
+            success_count, fail_count = 0, 0
             for r in records:
                 t0 = time.time()
                 success, msg = self._test_resource(r)
@@ -114,12 +122,16 @@ class StrawPollPreviewTest(CkanCommand):
 
                 if success:
                     self.log.info("  OK (%0.2fs) - %s" % (duration, r.id))
+                    success_count = success_count + 1
                 else:
                     self.log.info("  Fail (%0.2fs)- %s - %s" %
                                   (duration, r.id, msg))
+                    fail_count = fail_count + 1
 
                 if self.options.test:
                     self._test_jsondataproxy(r)
+
+            print "Out of %d records processed there were %d successes and %d failures" % (len(records),success_count,fail_count)
 
     def _test_jsondataproxy(self, resource):
         t0 = time.time()
