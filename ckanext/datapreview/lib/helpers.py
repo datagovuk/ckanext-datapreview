@@ -18,7 +18,14 @@ def get_resource_length(url, required=False, redirects=0):
     size on disk """
     log.debug('Getting resource length of %s' % url)
     if not url.startswith('http'):
-        if not os.path.exists(url):
+        try:
+            if not os.path.exists(url):
+                raise ResourceError("Unable to access resource",
+                    "The resource was not found in the resource cache")
+        except:
+            # If the URL is neither http:// or a valid path then we should just log the
+            # error
+            log.error("Unable to check existence of the resource: {0}".format(url))
             raise ResourceError("Unable to access resource",
                 "The resource was not found in the resource cache")
 
