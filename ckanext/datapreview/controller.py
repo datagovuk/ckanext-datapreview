@@ -51,13 +51,16 @@ class DataPreviewController(BaseController):
                 query[k] = request.params[k]
 
         url = self._get_url(resource, query)
-
-        try:
-            response.content_type = 'application/json'
-            result = proxy_query(resource, url, query)
-        except ProxyError as e:
-            log.error("Request id {0}, {1}".format(resource.id, e))
-            result = _error(title=e.title, message=e.message)
+        if url:
+            try:
+                response.content_type = 'application/json'
+                result = proxy_query(resource, url, query)
+            except ProxyError as e:
+                log.error("Request id {0}, {1}".format(resource.id, e))
+                result = _error(title=e.title, message=e.message)
+        else:
+            result = _error(title="Remote resource not downloadable",
+                message="Unable to find the remote resource for download")
 
         fmt = request.params.get('callback')
         if fmt:
@@ -73,6 +76,7 @@ class DataPreviewController(BaseController):
         # 3. resource url.
 
         url = None
+        query['mimetype'] = None
 
         if hasattr(resource, 'cache_url') and resource.cache_url:
             dir_root = config.get('ckanext-archiver.archive_dir')
@@ -93,11 +97,25 @@ class DataPreviewController(BaseController):
                     if r.getcode() == 200:
                         url = resource.cache_url
                         query['length'] = r.info()["content-length"]
+                        query['mimetype'] = r.info().get('content-type', None)
                 except Exception, e:
                     log.error(u"Request {0}, with url {1}, {2}".format(resource.id, resource.cache_url, e))
 
         if not url:
-            url = resource.url
+            try:
+                req = urllib2.Request(resource.url.encode('utf8'))
+                req.get_method = lambda: 'HEAD'
+
+                r = urllib2.urlopen(req)
+                if r.getcode() == 200:
+                    url = resource.url
+                    query['length'] = r.info()["content-length"]
+                    query['mimetype'] = r.info().get('content-type', None)
+                elif r.getcode() > 400:
+                    return None
+
+            except Exception, e:
+                log.error(u"Request {0}, with url {1}, {2}".format(resource.id, resource.url, e))
 
         return url
 

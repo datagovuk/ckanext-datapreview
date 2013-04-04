@@ -6,7 +6,7 @@ from messytables import AnyTableSet
 
 class TabularTransformer(base.Transformer):
 
-    def __init__(self, resource, url, query):
+    def __init__(self, resource, url, query, mimetype=None):
         super(TabularTransformer, self).__init__(resource, url, query)
         self.requires_size_limit = True
 
@@ -24,7 +24,7 @@ class TabularTransformer(base.Transformer):
             raise ResourceError("Remote resource missing",
                 "Unable to load the remote resource")
 
-        table_set = AnyTableSet.from_fileobj(handle, extension=self.type)
+        table_set = AnyTableSet.from_fileobj(handle, extension=self.type, mimetype=self.mimetype)
         tables = table_set.tables
 
         tp = 0

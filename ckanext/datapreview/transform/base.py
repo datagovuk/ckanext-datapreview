@@ -42,6 +42,8 @@ class Transformer(object):
         self.open_data = query['handler']
         self.requires_size_limit = True
         self.max_results = 500
+        self.mimetype = query.get('mimetype', None)
+
         if "max-results" in query:
             try:
                 self.max_results = int(query.get("max-results", 500))
