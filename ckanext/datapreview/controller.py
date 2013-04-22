@@ -83,7 +83,7 @@ class DataPreviewController(BaseController):
             url_root = config.get('ckan.cache_url_root')
             if dir_root and url_root:
                 possible = os.path.join(dir_root,
-                    resource.cache_url[len(url_root):]).encode('latin-1')
+                    resource.cache_url[len(url_root):]).encode('utf-8')
                 if os.path.exists(possible):
                     url = possible
                     log.debug("Using local_file at %s" % url)
