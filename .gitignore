@@ -1,0 +1,16 @@
+syntax: glob
+# generic
+*.pyc
+*~
+.DS_Store
+ckanext_datapreview.egg-info/*
+pip-log.txt
+cmd.txt
+
+# pylons
+data/*
+
+# other
+build/*
+tmp/*
+*.swp
