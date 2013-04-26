@@ -10,7 +10,7 @@ from ckan.logic import check_access
 
 log = logging.getLogger('ckanext.datapreview')
 
-from ckanext.datapreview.lib.helpers import proxy_query
+from ckanext.datapreview.lib.helpers import proxy_query, get_resource_format_from_qa
 from ckanext.datapreview.lib.errors import ProxyError
 
 
@@ -35,15 +35,14 @@ class DataPreviewController(BaseController):
 
         size_limit = config.get('ckan.datapreview.limit', 5000000)
 
-        # We will use the resource specified format to determine what
-        # type of file this is.  At some point QA will be providing a much
-        # more accurate idea of the file-type which will mean we can avoid
-        # those cases where HTML is marked as XLS, or XSL as CSV.
-        typ = request.params.get('type',
-                                 resource.format.lower()
-                                 if resource.format else '')
+        fmt = get_resource_format_from_qa(resource)
+        if fmt:
+            log.debug("QA thinks this file is %s" % fmt)
+        else:
+            log.debug("Did not find QA's data format")
+            fmt = resource.format.lower() if resource.format else ''
 
-        query = dict(type=typ, size_limit=size_limit)
+        query = dict(type=fmt, size_limit=size_limit)
 
         # Add the extra fields if they are set
         for k in ['max-results', 'encoding']:

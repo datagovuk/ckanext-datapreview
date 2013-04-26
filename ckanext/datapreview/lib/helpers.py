@@ -12,6 +12,21 @@ log = logging.getLogger('ckanext.datapreview.lib.helpers')
 
 REDIRECT_LIMIT = 3
 
+def get_resource_format_from_qa(resource):
+    import ckan.model as model
+    ts = model.Session.query(model.TaskStatus).filter(model.TaskStatus.entity_id==resource.id).first()
+    if not ts:
+        return None
+
+    d = {}
+    try:
+        d = json.loads(ts.error)
+    except:
+        # error was not valid JSON, but we will
+        # let the next check fail
+        pass
+
+    return d.get('format', None)
 
 def get_resource_length(url, required=False, redirects=0):
     """Get length of a resource either from a head request to the url, or checking the

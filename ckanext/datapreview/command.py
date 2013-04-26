@@ -5,9 +5,9 @@ import time
 import json
 import requests
 import urlparse
-
 from pylons import config
 from ckan.lib.cli import CkanCommand
+
 # No other CKAN imports allowed until _load_config is run,
 # or logging is disabled
 
