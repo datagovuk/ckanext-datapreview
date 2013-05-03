@@ -14,7 +14,10 @@ REDIRECT_LIMIT = 3
 
 def get_resource_format_from_qa(resource):
     import ckan.model as model
-    ts = model.Session.query(model.TaskStatus).filter(model.TaskStatus.entity_id==resource.id).first()
+    ts = model.Session.query(model.TaskStatus).\
+        filter(model.TaskStatus.task_type=='qa').\
+        filter(model.TaskStatus.key=='status').\
+        filter(model.TaskStatus.entity_id==resource.id).first()
     if not ts:
         return None
 
@@ -175,8 +178,7 @@ def proxy_query(resource, url, query):
         raise ResourceError("Data Transformation Error",
             "There was a problem reading the resource data")
     except Exception, e:
-        log.debug('Transformation of %s failed. %s: %s', url,
-            e.__class__.__name__, e)
+        log.exception(e)
         raise ResourceError("Data Transformation Error",
             "Data transformation failed. %s" % (e))
 
