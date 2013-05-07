@@ -21,6 +21,7 @@ setup(
 	zip_safe=False,
 	install_requires=[
         'requests>=0.14',
+        'messytables>=0.8'
 	],
 	entry_points=\
 	"""

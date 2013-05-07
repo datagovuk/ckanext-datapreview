@@ -1,7 +1,7 @@
 """Data Proxy - Messytables transformation adapter"""
 import base
 from ckanext.datapreview.lib.errors import ResourceError
-from messytables import AnyTableSet
+from messytables import any_tableset
 
 
 class TabularTransformer(base.Transformer):
@@ -24,7 +24,7 @@ class TabularTransformer(base.Transformer):
             raise ResourceError("Remote resource missing",
                 "Unable to load the remote resource")
 
-        table_set = AnyTableSet.from_fileobj(handle, extension=self.type, mimetype=self.mimetype)
+        table_set = any_tableset(handle, extension=self.type, mimetype=self.mimetype)
         tables = table_set.tables
 
         tp = 0
