@@ -8,7 +8,7 @@ from ckan.lib.base import (BaseController, c, request, response, abort)
 from ckanext.dgu.plugins_toolkit import NotAuthorized
 from ckan.logic import check_access
 
-log = logging.getLogger('ckanext.datapreview')
+log = logging.getLogger(__name__)
 
 from ckanext.datapreview.lib.helpers import proxy_query, get_resource_format_from_qa
 from ckanext.datapreview.lib.errors import ProxyError
@@ -17,6 +17,12 @@ from ckanext.datapreview.lib.errors import ProxyError
 def _error(**vars):
     return json.dumps(dict(error=vars), indent=4)
 
+def identify_resource(resource):
+    '''Returns a printable identity of a resource object.
+    e.g. '/dataset/energy-data/d1bedaa1-a1a3-462d-9a25-7b39a941d9f9'
+    '''
+    dataset_name = resource.resource_group.package.name if resource.resource_group else '?'
+    return '/dataset/{0}/resource/{1}'.format(dataset_name, resource.id)
 
 class DataPreviewController(BaseController):
 
@@ -35,14 +41,17 @@ class DataPreviewController(BaseController):
 
         size_limit = config.get('ckan.datapreview.limit', 5000000)
 
-        fmt = get_resource_format_from_qa(resource)
-        if fmt:
-            log.debug("QA thinks this file is %s" % fmt)
+        format_ = get_resource_format_from_qa(resource)
+        if format_:
+            log.debug("QA thinks this file is %s" % format_)
         else:
             log.debug("Did not find QA's data format")
-            fmt = resource.format.lower() if resource.format else ''
+            format_ = resource.format.lower() if resource.format else ''
 
-        query = dict(type=fmt, size_limit=size_limit)
+
+        query = dict(type=format_, size_limit=size_limit, length=None)
+        if resource.size:
+            query['length'] = resource.size
 
         # Add the extra fields if they are set
         for k in ['max-results', 'encoding']:
@@ -55,51 +64,57 @@ class DataPreviewController(BaseController):
                 response.content_type = 'application/json'
                 result = proxy_query(resource, url, query)
             except ProxyError as e:
-                log.error("Request id {0}, {1}".format(resource.id, e))
+                log.error("Request {0} with url {1} {2}".format(identify_resource(resource),
+                                                                url, e))
                 result = _error(title=e.title, message=e.message)
         else:
             result = _error(title="Remote resource not downloadable",
                 message="Unable to find the remote resource for download")
 
-        fmt = request.params.get('callback')
-        if fmt:
-            return "%s(%s)" % (fmt, result)
+        format_ = request.params.get('callback')
+        if format_:
+            return "%s(%s)" % (format_, result)
 
         return result
 
     def _get_url(self, resource, query):
-        # To determine where we will get the resource data from, we will try
-        # in order:
-        # 1. If there is a cache_url, guess where the local file might be
-        # 2. cache_url, if set. If we get a 404 from the head request then ..
-        # 3. resource url.
+        '''
+        Given a resource, return the URL for the data.
 
+        This allows a local cache to be used in preference to the
+        resource.url.
+
+        If we are going to use an external URL, then we can do a HEAD request
+        to check it works and record the mimetype & length in the query dict.
+
+        :param resource: resource object
+        :param query: dict describing the properties of the data
+        '''
         url = None
         query['mimetype'] = None
 
-        if hasattr(resource, 'cache_url') and resource.cache_url:
-            dir_root = config.get('ckanext-archiver.archive_dir')
-            url_root = config.get('ckan.cache_url_root')
-            if dir_root and url_root:
-                possible = os.path.join(dir_root,
-                    resource.cache_url[len(url_root):]).encode('utf-8')
-                if os.path.exists(possible):
-                    url = possible
-                    log.debug("Using local_file at %s" % url)
+        # Look for a local cache of the data file
+        # e.g. "cache_filepath": "/mnt/shared/ckan_resource_cache/63/63b159d7-90c5-443b-846d-f700f74ea062/bian-anal-mca-2005-dols-eng-1011-0312-tab2.csv"
+        cache_filepath = resource.extras.get('cache_filepath')
+        if cache_filepath and os.path.exists(cache_filepath):
+            url = cache_filepath
 
-            if not url:  # If not found on disk try a head request
-                try:
-                    req = urllib2.Request(resource.cache_url.encode('utf8'))
-                    req.get_method = lambda: 'HEAD'
+        # Otherwise try the cache_url
+        if not url and hasattr(resource, 'cache_url') and resource.cache_url:
+            # e.g. resource.cache_url = "http://data.gov.uk/data/resource_cache/07/0791d492-8ab9-4aae-b7e6-7ecae561faa3/bian-anal-mca-2005-dols-eng-1011-0312-qual.pdf"
+            try:
+                req = urllib2.Request(resource.cache_url.encode('utf8'))
+                req.get_method = lambda: 'HEAD'
 
-                    r = urllib2.urlopen(req)
-                    if r.getcode() == 200:
-                        url = resource.cache_url
-                        query['length'] = r.info()["content-length"]
-                        query['mimetype'] = r.info().get('content-type', None)
-                except Exception, e:
-                    log.error(u"Request {0}, with url {1}, {2}".format(resource.id, resource.cache_url, e))
+                r = urllib2.urlopen(req)
+                if r.getcode() == 200:
+                    url = resource.cache_url
+                    query['length'] = r.info()["content-length"]
+                    query['mimetype'] = r.info().get('content-type', None)
+            except Exception, e:
+                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), resource.cache_url, e))
 
+        # Otherwise use the URL itself
         if not url:
             try:
                 req = urllib2.Request(resource.url.encode('utf8'))
@@ -114,7 +129,7 @@ class DataPreviewController(BaseController):
                     return None
 
             except Exception, e:
-                log.error(u"Request {0}, with url {1}, {2}".format(resource.id, resource.url, e))
+                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), resource.url, e))
 
         return url
 

@@ -34,7 +34,7 @@ def transformer(type_name, resource, url, query):
 
 
 class Transformer(object):
-    """Data resource transformer - abstract ckass"""
+    """Data resource transformer - abstract class"""
     def __init__(self, flow, url, query):
         self.flow = flow
         self.url = url

@@ -24,26 +24,40 @@ class TabularTransformer(base.Transformer):
             raise ResourceError("Remote resource missing",
                 "Unable to load the remote resource")
 
-        table_set = any_tableset(handle, extension=self.type, mimetype=self.mimetype)
+        table_set = any_tableset(fileobj=handle,
+                                 extension=self.type,
+                                 mimetype=self.mimetype)
         tables = table_set.tables
 
-        tp = 0
-        rs = []
-        while tp < len(tables):
-            # Find a workable sheet with more than 0 rows
-            rs = list(tables[tp])
-            if len(rs) > 0:
+        # Find a workable sheet with more than 0 rows
+        rows = []
+        for table in tables:
+            # + 1 so that the header is included
+            rows = _list(table, self.max_results + 1)
+            if len(rows) > 0:
                 break
-            tp += 1
 
+        # top row becomes 'fields'. Convert to unicode.
+        fields = [unicode(c.value) for c in rows.pop(0)] if rows else []
+        # other rows become 'data'. Convert to unicode.
+        data = [[unicode(c.value) for c in r] for r in rows[:self.max_results]]
         result = {
-            "fields": [],
-            "data": [[unicode(c.value) for c in r] for r in rs[:self.max_results]],
+            "fields": fields,
+            "data": data,
             "max_results": self.max_results,
         }
-        if len(rs):
-            result["fields"] = [unicode(c.value) for c in rs.pop(0)]
 
         self.close_stream(handle)
 
         return result
+
+def _list(iterable, max_results):
+    '''Returns the list(iterable) up to a maximum number of results'''
+    out = []
+    count = 0
+    for item in iterable:
+        out.append(item)
+        count += 1
+        if count == max_results:
+            break
+    return out

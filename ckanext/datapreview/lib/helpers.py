@@ -13,27 +13,29 @@ log = logging.getLogger('ckanext.datapreview.lib.helpers')
 REDIRECT_LIMIT = 3
 
 def get_resource_format_from_qa(resource):
+    '''Returns the format of the resource, as detected by QA.
+    If there is none recorded for this resource, returns None
+    '''
     import ckan.model as model
-    ts = model.Session.query(model.TaskStatus).\
-        filter(model.TaskStatus.task_type=='qa').\
-        filter(model.TaskStatus.key=='status').\
-        filter(model.TaskStatus.entity_id==resource.id).first()
-    if not ts:
+    task_status = model.Session.query(model.TaskStatus).\
+                  filter(model.TaskStatus.task_type=='qa').\
+                  filter(model.TaskStatus.key=='status').\
+                  filter(model.TaskStatus.entity_id==resource.id).first()
+    if not task_status:
         return None
 
-    d = {}
     try:
-        d = json.loads(ts.error)
-    except:
-        # error was not valid JSON, but we will
-        # let the next check fail
-        pass
-
-    return d.get('format', None)
+        status = json.loads(task_status.error)
+    except ValueError:
+        return {}
+    return status['format']
 
 def get_resource_length(url, required=False, redirects=0):
-    """Get length of a resource either from a head request to the url, or checking the
-    size on disk """
+    '''Get file size of a resource.
+
+    Either do a HEAD request to the url, or checking the
+    size on disk.
+    '''
     log.debug('Getting resource length of %s' % url)
     if not url.startswith('http'):
         try:
@@ -96,19 +98,21 @@ def get_resource_length(url, required=False, redirects=0):
 def error(**vars):
     return json.dumps(dict(error=vars), indent=4)
 
-
-def int_formatter(value, places=3, seperator=u','):
-    value = str(value)
-    if len(value) <= places:
-        return value
-
-    parts = []
-    while value:
-        parts.append(value[-places:])
-        value = value[:-places]
-
-    parts.reverse()
-    return seperator.join(parts)
+def sizeof_fmt(num, decimal_places=1):
+    '''Given a number of bytes, returns it in human-readable format.
+    >>> sizeof_fmt(168963795964)
+    '157.4GB'
+    '''
+    try:
+        num = float(num)
+    except ValueError:
+        return num
+    format_string = '%%3.%sf%%s' % decimal_places
+    for x in ['bytes','KB','MB','GB']:
+        if num < 1024.0:
+            return format_string % (num, x)
+        num /= 1024.0
+    return format_string % (num, 'TB')
 
 
 def _open_file(url):
@@ -126,6 +130,32 @@ def _open_url(url):
 
 
 def proxy_query(resource, url, query):
+    '''
+    Given the URL for a data file, return its transformed contents in JSON form.
+
+    e.g. if it is a spreadsheet, it returns a JSON dict:
+        {
+            "fields": ['Name', 'Age'],
+            "data": [['Bob', 42], ['Jill', 54]],
+            "max_results": 10,
+            "length": 435,
+            "url": "http://data.com/file.csv",
+        }
+    Whatever it is, it always has length (file size in bytes) and url (where
+    it got the data from, which might be a URL or a local cache filepath).
+
+    :param resource: resource object
+    :param url: URL or local filepath
+    :param query: dict about the URL:
+          type - (optional) format of the file - extension or mimetype.
+                            Only specify this if you the caller knows better
+                            than magic can detect it.
+                            Defaults to the file extension of the URL.
+          length - (optional) size of the file. If not supplied,
+                              it will determine it.
+          size_limit - max size of the file to transform
+          indent - (optional) the indent for the pprint the JSON result
+    '''
     parts = urlparse.urlparse(url)
 
     # Get resource type - first try to see whether there is type= URL option,
@@ -154,19 +184,20 @@ def proxy_query(resource, url, query):
             'Transformation of resource of type %s is not supported.'
             % (resource_type))
 
-    length = query.get('length', get_resource_length(url,
-        trans.requires_size_limit))
+    length = query.get('length',
+                       get_resource_length(url,
+                                           trans.requires_size_limit))
 
     log.debug('The file at %s has length %s', url, length)
 
     max_length = int(query['size_limit'])
 
     if length and trans.requires_size_limit and int(length) > max_length:
-        raise ResourceError('The requested file is too large to download',
-                            'Requested resource is %s bytes. '
-                            'Size limit is %s bytes. '
-                            % (int_formatter(length),
-                            int_formatter(max_length)))
+        raise ResourceError('The requested file is too large to preview',
+                            'Requested resource is %s. '
+                            'Size limit is %s. '
+                            % (sizeof_fmt(length),
+                               sizeof_fmt(max_length, decimal_places=0)))
 
     try:
         result = trans.transform()
