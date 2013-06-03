@@ -201,8 +201,9 @@ def proxy_query(resource, url, query):
 
     try:
         result = trans.transform()
-    except ResourceError:
-        raise
+    except ResourceError, reserr:
+        log.debug('Transformation of %s failed. %s', url, reserr)        
+        raise reserr
     except StopIteration as si:
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url, si)

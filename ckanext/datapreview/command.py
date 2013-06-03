@@ -60,6 +60,7 @@ class PrepResourceCache(CkanCommand):
 
         root = "%s%s/%s/%s" % (config.get('ckan.cache_url_root'),
             self.args[0][0:2], self.args[0], filename)
+        r.extras['cache_filepath'] = p
         r.cache_url = root.replace(' ', '%20')
         model.Session.add(r)
         model.Session.commit()

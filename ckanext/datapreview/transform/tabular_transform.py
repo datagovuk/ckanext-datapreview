@@ -24,9 +24,14 @@ class TabularTransformer(base.Transformer):
             raise ResourceError("Remote resource missing",
                 "Unable to load the remote resource")
 
-        table_set = any_tableset(fileobj=handle,
-                                 extension=self.type,
-                                 mimetype=self.mimetype)
+        try:
+            table_set = any_tableset(fileobj=handle,
+                                     extension=self.type,
+                                     mimetype=self.mimetype)
+        except:
+            raise ResourceError("Resource loading error",
+                "Unable to load the resource")
+
         tables = table_set.tables
 
         # Find a workable sheet with more than 0 rows
