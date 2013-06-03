@@ -96,7 +96,7 @@ class DataPreviewController(BaseController):
         # Look for a local cache of the data file
         # e.g. "cache_filepath": "/mnt/shared/ckan_resource_cache/63/63b159d7-90c5-443b-846d-f700f74ea062/bian-anal-mca-2005-dols-eng-1011-0312-tab2.csv"
         cache_filepath = resource.extras.get('cache_filepath')
-        if cache_filepath and os.path.exists(cache_filepath):
+        if cache_filepath and os.path.exists(cache_filepath.encode('utf8')):
             url = cache_filepath
 
         # Otherwise try the cache_url
