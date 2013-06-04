@@ -10,19 +10,14 @@ from ckan.logic import check_access
 
 log = logging.getLogger(__name__)
 
-from ckanext.datapreview.lib.helpers import proxy_query, get_resource_format_from_qa
+from ckanext.datapreview.lib.helpers import (proxy_query,
+                                             get_resource_format_from_qa,
+                                             identify_resource)
 from ckanext.datapreview.lib.errors import ProxyError
 
 
 def _error(**vars):
     return json.dumps(dict(error=vars), indent=4)
-
-def identify_resource(resource):
-    '''Returns a printable identity of a resource object.
-    e.g. '/dataset/energy-data/d1bedaa1-a1a3-462d-9a25-7b39a941d9f9'
-    '''
-    dataset_name = resource.resource_group.package.name if resource.resource_group else '?'
-    return '/dataset/{0}/resource/{1}'.format(dataset_name, resource.id)
 
 class DataPreviewController(BaseController):
 
