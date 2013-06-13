@@ -1,7 +1,7 @@
 """Data Proxy - Messytables transformation adapter"""
 import base
 from ckanext.datapreview.lib.errors import ResourceError
-from messytables import any_tableset
+from messytables import any_tableset, headers_guess
 
 
 class TabularTransformer(base.Transformer):
@@ -42,14 +42,21 @@ class TabularTransformer(base.Transformer):
             if len(rows) > 0:
                 break
 
-        # top row becomes 'fields'. Convert to unicode.
-        fields = [unicode(c.value) for c in rows.pop(0)] if rows else []
+        # Use the built-in header guessing in messtables to find the fields
+        offset, headers = headers_guess(rows)
+        fields =  [unicode(c) for c in headers] if headers else []
+
         # other rows become 'data'. Convert to unicode.
-        data = [[unicode(c.value) for c in r] for r in rows[:self.max_results]]
+        # We should skip row offset so that we don't re-display the headers
+        data = []
+        for i, r in enumerate(rows[:self.max_results]):
+            if i != offset:
+                data.append([unicode(c.value) for c in r])
+
         result = {
             "fields": fields,
             "data": data,
-            "max_results": self.max_results,
+            "max_results": self.max_results
         }
 
         self.close_stream(handle)
