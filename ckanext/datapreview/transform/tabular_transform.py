@@ -36,8 +36,10 @@ class TabularTransformer(base.Transformer):
 
         # Find a workable sheet with more than 0 rows
         rows = []
+        row_count = 0
         for table in tables:
             # + 1 so that the header is included
+            row_count = len(list(table))
             rows = _list(table, self.max_results + 1)
             if len(rows) > 0:
                 break
@@ -53,10 +55,21 @@ class TabularTransformer(base.Transformer):
             if i != offset:
                 data.append([unicode(c.value) for c in r])
 
+        extra = ""
+
+        if len(tables) > 1:
+            extra = "Only 1 of {0} tables shown".format(len(tables))
+            if row_count > self.max_results:
+                extra = extra + " and {0} rows from {1} in this table".format(self.max_results, row_count)
+        else:
+            if row_count > self.max_results:
+                extra = "This preview shows only {0} rows from {1}".format(self.max_results, row_count)
+
         result = {
             "fields": fields,
             "data": data,
-            "max_results": self.max_results
+            "max_results": self.max_results,
+            "extra_text": extra
         }
 
         self.close_stream(handle)
