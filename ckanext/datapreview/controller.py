@@ -10,7 +10,7 @@ from ckan.logic import check_access
 
 log = logging.getLogger(__name__)
 
-from ckanext.datapreview.lib.helpers import proxy_query, get_resource_format_from_qa
+from ckanext.datapreview.lib.helpers import (proxy_query, get_resource_format_from_qa, fix_url)
 from ckanext.datapreview.lib.errors import ProxyError
 
 
@@ -48,13 +48,12 @@ class DataPreviewController(BaseController):
             log.debug("Did not find QA's data format")
             format_ = resource.format.lower() if resource.format else ''
 
-
         query = dict(type=format_, size_limit=size_limit, length=None)
         if resource.size:
             query['length'] = resource.size
 
         # Add the extra fields if they are set
-        for k in ['max-results', 'encoding']:
+        for k in ['max-results', 'encoding', 'type']:
             if k in request.params:
                 query[k] = request.params[k]
 
@@ -64,8 +63,7 @@ class DataPreviewController(BaseController):
                 response.content_type = 'application/json'
                 result = proxy_query(resource, url, query)
             except ProxyError as e:
-                log.error("Request {0} with url {1} {2}".format(identify_resource(resource),
-                                                                url, e))
+                log.error("Request {0} failed : {1}".format(identify_resource(resource), e))
                 result = _error(title=e.title, message=e.message)
         else:
             result = _error(title="Remote resource not downloadable",
@@ -101,35 +99,38 @@ class DataPreviewController(BaseController):
 
         # Otherwise try the cache_url
         if not url and hasattr(resource, 'cache_url') and resource.cache_url:
+            u = fix_url(resource.cache_url)
+
             # e.g. resource.cache_url = "http://data.gov.uk/data/resource_cache/07/0791d492-8ab9-4aae-b7e6-7ecae561faa3/bian-anal-mca-2005-dols-eng-1011-0312-qual.pdf"
             try:
-                req = urllib2.Request(resource.cache_url.encode('utf8'))
+                req = urllib2.Request(u)
                 req.get_method = lambda: 'HEAD'
 
                 r = urllib2.urlopen(req)
                 if r.getcode() == 200:
-                    url = resource.cache_url
+                    url = u
                     query['length'] = r.info()["content-length"]
                     query['mimetype'] = r.info().get('content-type', None)
             except Exception, e:
-                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), resource.cache_url, e))
+                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
 
         # Otherwise use the URL itself
         if not url:
+            u = fix_url(resource.url)
             try:
-                req = urllib2.Request(resource.url.encode('utf8'))
+                req = urllib2.Request(u)
                 req.get_method = lambda: 'HEAD'
 
                 r = urllib2.urlopen(req)
                 if r.getcode() == 200:
-                    url = resource.url
+                    url = u
                     query['length'] = r.info()["content-length"]
                     query['mimetype'] = r.info().get('content-type', None)
                 elif r.getcode() > 400:
                     return None
 
             except Exception, e:
-                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), resource.url, e))
+                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
 
         return url
 

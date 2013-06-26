@@ -28,7 +28,7 @@ class TabularTransformer(base.Transformer):
             table_set = any_tableset(fileobj=handle,
                                      extension=self.type,
                                      mimetype=self.mimetype)
-        except:
+        except Exception, e:
             raise ResourceError("Resource loading error",
                 "Unable to load the resource")
 
