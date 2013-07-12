@@ -56,7 +56,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
         except:
             # If the URL is neither http:// or a valid path then we should just log the
             # error
-            log.error("Unable to check existence of the resource: {0}".format(url))
+            log.info("Unable to check existence of the resource: {0}".format(url))
             raise ResourceError("Unable to access resource",
                 "The resource was not found in the resource cache: %s" % \
                                     identify_resource(resource))
@@ -67,9 +67,9 @@ def get_resource_length(url, resource, required=False, redirects=0):
     try:
         response = requests.head(url)
     except Exception, e:
-        log.error("Unable to access resource {0}: {1}".format(url, e))
+        log.info("Unable to access resource {0}: {1}".format(url, e))
         raise ResourceError("Unable to access resource",
-            "There was a problem retrieving the resource %s : %s" % \
+            "There was a problem retrieving the resource URL %s : %s" % \
                                     (identify_resource(resource), e))
 
     headers = {}
@@ -104,7 +104,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
         # Content length not always set with content-disposition so we will
         # just have to take a flyer on it.
         if not 'content-disposition' in headers:
-            log.error('No content-length returned for server: %s'
+            log.info('No content-length returned for server: %s'
                                     % (url))
             raise ResourceError("Unable to get content length",
                 'Unable to find the size of the remote resource: %s' % \
@@ -137,11 +137,14 @@ def _open_file(url):
 
 
 def _open_url(url):
-    """ URLs with &pound; in, just so, so wrong. """
+    """ URLs with &pound; in, just so, so wrong.
+
+    Errors fetching the URL are ignored.
+    """
     try:
         return urllib2.urlopen(url.encode("utf-8"))
     except Exception, e:
-        log.error("URL %s caused: %s" % (url, e))
+        log.info("URL %s caused: %s" % (url, e))
 
     return None
 
@@ -160,6 +163,8 @@ def proxy_query(resource, url, query):
         }
     Whatever it is, it always has length (file size in bytes) and url (where
     it got the data from, which might be a URL or a local cache filepath).
+
+    May raise RequestError.
 
     :param resource: resource object
     :param url: URL or local filepath
