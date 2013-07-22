@@ -31,24 +31,35 @@ def get_resource_format_from_qa(resource):
         return {}
     return status['format']
 
-def get_resource_length(url, required=False, redirects=0):
+def get_resource_length(url, resource, required=False, redirects=0):
     '''Get file size of a resource.
 
     Either do a HEAD request to the url, or checking the
     size on disk.
+
+    :param url: URL to check
+    :param resource: Resource object, just for identification purposes
+    :param required: ?
+    :param redirects: For counting the number of recursions due to redirects
+
+    On error, this method raises ResourceError.
+
+    If the headers do not contain the length, this method returns None.
     '''
     log.debug('Getting resource length of %s' % url)
     if not url.startswith('http'):
         try:
             if not os.path.exists(url):
                 raise ResourceError("Unable to access resource",
-                    "The resource was not found in the resource cache")
+                    "The resource was not found in the resource cache: %s" % \
+                                    identify_resource(resource))
         except:
             # If the URL is neither http:// or a valid path then we should just log the
             # error
-            log.error("Unable to check existence of the resource: {0}".format(url))
+            log.info("Unable to check existence of the resource: {0}".format(url))
             raise ResourceError("Unable to access resource",
-                "The resource was not found in the resource cache")
+                "The resource was not found in the resource cache: %s" % \
+                                    identify_resource(resource))
 
         return os.path.getsize(url)
 
@@ -56,20 +67,22 @@ def get_resource_length(url, required=False, redirects=0):
     try:
         response = requests.head(url)
     except Exception, e:
-        log.error("Unable to access resource {0}: {1}".format(url, e))
+        log.info("Unable to access resource {0}: {1}".format(url, e))
         raise ResourceError("Unable to access resource",
-            "There was a problem retrieving the resource: %s" % e)
+            "There was a problem retrieving the resource URL %s : %s" % \
+                                    (identify_resource(resource), e))
 
     headers = {}
     for header, value in response.headers.iteritems():
         headers[header.lower()] = value
 
     # Redirect?
+    # DR: requests handles redirects, so this section may be removed
     if response.status_code == 302 and redirects < REDIRECT_LIMIT:
         if "location" not in headers:
             raise ResourceError("Resource moved, but no Location provided by resource server",
-                'Resource %s moved, but no Location provided by resource server'
-                % (url))
+                'Resource %s moved, but no Location provided by resource server: %s' % \
+                                (url, identify_resource(resource)))
 
         # if our redirect location is relative, then we can only assume
         # it is relative to the url we've just requested.
@@ -78,21 +91,24 @@ def get_resource_length(url, required=False, redirects=0):
         else:
             loc = headers['location']
 
-        return get_resource_length(loc, required=required,
+        return get_resource_length(loc, resource, required=required,
             redirects=redirects + 1)
 
     if 'content-length' in headers:
         length = int(headers['content-length'])
         return length
 
+    # DR: I don't see how content-disposition is related to content-length
+    #     so I suggest we remove this section.
     if required:
         # Content length not always set with content-disposition so we will
         # just have to take a flyer on it.
         if not 'content-disposition' in headers:
-            log.error('No content-length returned for server: %s'
+            log.info('No content-length returned for server: %s'
                                     % (url))
             raise ResourceError("Unable to get content length",
-                'Unable to find the size of the remote resource')
+                'Unable to find the size of the remote resource: %s' % \
+                                    identify_resource(resource))
     return None
 
 
@@ -121,11 +137,14 @@ def _open_file(url):
 
 
 def _open_url(url):
-    """ URLs with &pound; in, just so, so wrong. """
+    """ URLs with &pound; in, just so, so wrong.
+
+    Errors fetching the URL are ignored.
+    """
     try:
         return urllib2.urlopen(url.encode("utf-8"))
     except Exception, e:
-        log.error("URL %s caused: %s" % (url, e))
+        log.info("URL %s caused: %s" % (url, e))
 
     return None
 
@@ -144,6 +163,8 @@ def proxy_query(resource, url, query):
         }
     Whatever it is, it always has length (file size in bytes) and url (where
     it got the data from, which might be a URL or a local cache filepath).
+
+    May raise RequestError.
 
     :param resource: resource object
     :param url: URL or local filepath
@@ -186,7 +207,7 @@ def proxy_query(resource, url, query):
             % (resource_type))
 
     length = query.get('length',
-                       get_resource_length(url,
+                       get_resource_length(url, resource,
                                            trans.requires_size_limit))
 
     log.debug('The file at %s has length %s', url, length)
@@ -196,9 +217,10 @@ def proxy_query(resource, url, query):
     if length and trans.requires_size_limit and int(length) > max_length:
         raise ResourceError('The requested file is too large to preview',
                             'Requested resource is %s. '
-                            'Size limit is %s. '
+                            'Size limit is %s. Resource: %s'
                             % (sizeof_fmt(length),
-                               sizeof_fmt(max_length, decimal_places=0)))
+                               sizeof_fmt(max_length, decimal_places=0),
+                               identify_resource(resource)))
 
     try:
         result = trans.transform()
@@ -209,11 +231,13 @@ def proxy_query(resource, url, query):
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url, si)
         raise ResourceError("Data Transformation Error",
-            "There was a problem reading the resource data")
+            "There was a problem reading the resource data: %s" % \
+                                    identify_resource(resource))
     except Exception, e:
         log.exception(e)
         raise ResourceError("Data Transformation Error",
-            "Data transformation failed. %s" % (e))
+                            "Data transformation failed: %s %s" % \
+                                    (identify_resource(resource), e))
 
     indent = None
 
@@ -229,9 +253,18 @@ def proxy_query(resource, url, query):
 
     return json.dumps(result, indent=indent)
 
+def identify_resource(resource):
+    '''Returns a printable identity of a resource object.
+    e.g. '/dataset/energy-data/d1bedaa1-a1a3-462d-9a25-7b39a941d9f9'
+    '''
+    dataset_name = resource.resource_group.package.name if resource.resource_group else '?'
+    return '/dataset/{0}/resource/{1}'.format(dataset_name, resource.id)
+
 def fix_url(url):
     """
-    Fixes urls so that they don't break when we're given utf8
+    DR: Any Unicode characters in a URL become encoded in UTF8.
+    It does this by unquoting, encoding, and quoting again.
+    RJ: Fixes urls so that they don't break when we're given utf8
     urls
     """
     if not isinstance(url,unicode):

@@ -10,19 +10,15 @@ from ckan.logic import check_access
 
 log = logging.getLogger(__name__)
 
-from ckanext.datapreview.lib.helpers import (proxy_query, get_resource_format_from_qa, fix_url)
+from ckanext.datapreview.lib.helpers import (proxy_query,
+                                             get_resource_format_from_qa,
+                                             identify_resource,
+                                             fix_url)
 from ckanext.datapreview.lib.errors import ProxyError
 
 
 def _error(**vars):
     return json.dumps(dict(error=vars), indent=4)
-
-def identify_resource(resource):
-    '''Returns a printable identity of a resource object.
-    e.g. '/dataset/energy-data/d1bedaa1-a1a3-462d-9a25-7b39a941d9f9'
-    '''
-    dataset_name = resource.resource_group.package.name if resource.resource_group else '?'
-    return '/dataset/{0}/resource/{1}'.format(dataset_name, resource.id)
 
 class DataPreviewController(BaseController):
 
@@ -63,7 +59,7 @@ class DataPreviewController(BaseController):
                 response.content_type = 'application/json'
                 result = proxy_query(resource, url, query)
             except ProxyError as e:
-                log.error("Request {0} failed : {1}".format(identify_resource(resource), e))
+                log.warn("Request {0} failed : {1}".format(identify_resource(resource), e))
                 result = _error(title=e.title, message=e.message)
         else:
             result = _error(title="Remote resource not downloadable",
@@ -94,10 +90,17 @@ class DataPreviewController(BaseController):
         # Look for a local cache of the data file
         # e.g. "cache_filepath": "/mnt/shared/ckan_resource_cache/63/63b159d7-90c5-443b-846d-f700f74ea062/bian-anal-mca-2005-dols-eng-1011-0312-tab2.csv"
         cache_filepath = resource.extras.get('cache_filepath')
-        if cache_filepath and os.path.exists(cache_filepath.encode('utf8')):
-            url = cache_filepath
+        if cache_filepath:
+            if os.path.exists(cache_filepath.encode('utf8')):
+                log.debug('Previewing local cached data: %s', cache_filepath)
+                url = cache_filepath
+            else:
+                log.debug('Local cached data file missing: %s', cache_filepath)
 
         # Otherwise try the cache_url
+        # This works well when running on a database copied from another
+        # machine - all the cached files are missing locally, but it can use
+        # them from the original machine using the cache_url.
         if not url and hasattr(resource, 'cache_url') and resource.cache_url:
             u = fix_url(resource.cache_url)
 
@@ -111,8 +114,9 @@ class DataPreviewController(BaseController):
                     url = u
                     query['length'] = r.info()["content-length"]
                     query['mimetype'] = r.info().get('content-type', None)
+                    log.debug('Previewing cache URL: %s', url)
             except Exception, e:
-                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
+                log.error(u"Request {0} with cache url {1}, {2}".format(identify_resource(resource), u, e))
 
         # Otherwise use the URL itself
         if not url:
@@ -126,6 +130,7 @@ class DataPreviewController(BaseController):
                     url = u
                     query['length'] = r.info()["content-length"]
                     query['mimetype'] = r.info().get('content-type', None)
+                    log.debug('Previewing direct from URL: %s', url)
                 elif r.getcode() > 400:
                     return None
 
