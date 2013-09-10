@@ -56,7 +56,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
         except:
             # If the URL is neither http:// or a valid path then we should just log the
             # error
-            log.info("Unable to check existence of the resource: {0}".format(url))
+            log.info(u"Unable to check existence of the resource: {0}".format(url))
             raise ResourceError("Unable to access resource",
                 "The resource was not found in the resource cache: %s" % \
                                     identify_resource(resource))
@@ -225,7 +225,7 @@ def proxy_query(resource, url, query):
     try:
         result = trans.transform()
     except ResourceError, reserr:
-        log.debug('Transformation of %s failed. %s', url, reserr)        
+        log.debug('Transformation of %s failed. %s', url, reserr)
         raise reserr
     except StopIteration as si:
         # In all likelihood, there was no data to read
