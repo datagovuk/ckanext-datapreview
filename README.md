@@ -16,6 +16,10 @@ The most straightforward method of installation is::
     cd ckanext-datapreview
     python setup.py develop
 
+Or alternatively install directly using pip:
+
+    pip install -e git+https://github.com/rossjones/ckanext-datapreview.git#egg=ckanext-datapreview
+
 Once complete the datapreview should be added to your ckan.plugins property in the appropriate .ini file.
 
 
