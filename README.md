@@ -12,13 +12,13 @@ is not exactly the same - dataproxy requires the URL instead of the resource id 
 
 The most straightforward method of installation is::
 
-    git clone git://github.com/rossjones/ckanext-datapreview.git
+    git clone git://github.com/datagovuk/ckanext-datapreview.git
     cd ckanext-datapreview
     python setup.py develop
 
 Or alternatively install directly using pip:
 
-    pip install -e git+https://github.com/rossjones/ckanext-datapreview.git#egg=ckanext-datapreview
+    pip install -e git+https://github.com/datagovuk/ckanext-datapreview.git#egg=ckanext-datapreview
 
 Once complete the datapreview should be added to your ckan.plugins property in the appropriate .ini file.
 
