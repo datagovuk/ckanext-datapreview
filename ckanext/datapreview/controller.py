@@ -133,7 +133,9 @@ class DataPreviewController(BaseController):
                     log.debug('Previewing direct from URL: %s', url)
                 elif r.getcode() > 400:
                     return None
-
+            except urllib2.HTTPError, err:
+                if err.code < 400:
+                    log.warn(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, err.code))
             except Exception, e:
                 log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
 
