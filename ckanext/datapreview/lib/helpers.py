@@ -214,13 +214,18 @@ def proxy_query(resource, url, query):
 
     max_length = int(query['size_limit'])
 
-    if length and trans.requires_size_limit and int(length) > max_length:
-        raise ResourceError('The requested file is too large to preview',
-                            'Requested resource is %s. '
-                            'Size limit is %s. Resource: %s'
-                            % (sizeof_fmt(length),
-                               sizeof_fmt(max_length, decimal_places=0),
-                               identify_resource(resource)))
+    if query.get('archived', True):
+        log.info("Skipping size check when reading from archive")
+    else:
+        # We only do the length check when we are working with remote files as
+        # they might take too long to download.
+        if length and trans.requires_size_limit and int(length) > max_length:
+            raise ResourceError('The requested file is too large to preview',
+                                'Requested resource is %s. '
+                                'Size limit is %s. Resource: %s'
+                                % (sizeof_fmt(length),
+                                   sizeof_fmt(max_length, decimal_places=0),
+                                   identify_resource(resource)))
 
     try:
         result = trans.transform()
@@ -262,10 +267,8 @@ def identify_resource(resource):
 
 def fix_url(url):
     """
-    DR: Any Unicode characters in a URL become encoded in UTF8.
+    Any Unicode characters in a URL become encoded in UTF8.
     It does this by unquoting, encoding, and quoting again.
-    RJ: Fixes urls so that they don't break when we're given utf8
-    urls
     """
     if not isinstance(url,unicode):
         url = url.decode('utf8')

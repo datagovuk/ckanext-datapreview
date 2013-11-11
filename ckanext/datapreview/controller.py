@@ -8,7 +8,7 @@ from ckan.lib.base import (BaseController, c, request, response, abort)
 from ckanext.dgu.plugins_toolkit import NotAuthorized
 from ckan.logic import check_access
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('ckanext.datapreview')
 
 from ckanext.datapreview.lib.helpers import (proxy_query,
                                              get_resource_format_from_qa,
@@ -53,7 +53,8 @@ class DataPreviewController(BaseController):
             if k in request.params:
                 query[k] = request.params[k]
 
-        url = self._get_url(resource, query)
+        url, archived = self._get_url(resource, query)
+        query['archived'] = archived
         if url:
             try:
                 response.content_type = 'application/json'
@@ -73,7 +74,8 @@ class DataPreviewController(BaseController):
 
     def _get_url(self, resource, query):
         '''
-        Given a resource, return the URL for the data.
+        Given a resource, return the URL for the data and a flag denoting whether
+        the URL is to a local file (and therefore can ignore size limit checks.)
 
         This allows a local cache to be used in preference to the
         resource.url.
@@ -85,6 +87,7 @@ class DataPreviewController(BaseController):
         :param query: dict describing the properties of the data
         '''
         url = None
+        archived = False
         query['mimetype'] = None
 
         # Look for a local cache of the data file
@@ -94,6 +97,7 @@ class DataPreviewController(BaseController):
             if os.path.exists(cache_filepath.encode('utf8')):
                 log.debug('Previewing local cached data: %s', cache_filepath)
                 url = cache_filepath
+                archived = True
             else:
                 log.debug('Local cached data file missing: %s', cache_filepath)
 
@@ -139,7 +143,7 @@ class DataPreviewController(BaseController):
             except Exception, e:
                 log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
 
-        return url
+        return url, archived
 
     def serve(self, path):
         root = os.path.join(config.get('ckanext-archiver.archive_dir', '/tmp'),

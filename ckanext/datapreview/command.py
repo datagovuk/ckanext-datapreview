@@ -11,7 +11,7 @@ from ckan.lib.cli import CkanCommand
 # No other CKAN imports allowed until _load_config is run,
 # or logging is disabled
 
-log = logging.getLogger(__file__)
+log = logging.getLogger('ckanext.datapreview')
 
 
 class PrepResourceCache(CkanCommand):
