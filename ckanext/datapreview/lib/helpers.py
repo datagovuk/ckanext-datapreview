@@ -98,17 +98,12 @@ def get_resource_length(url, resource, required=False, redirects=0):
         length = int(headers['content-length'])
         return length
 
-    # DR: I don't see how content-disposition is related to content-length
-    #     so I suggest we remove this section.
     if required:
-        # Content length not always set with content-disposition so we will
-        # just have to take a flyer on it.
-        if not 'content-disposition' in headers:
-            log.info('No content-length returned for server: %s'
-                                    % (url))
-            raise ResourceError("Unable to get content length",
-                'Unable to find the size of the remote resource: %s' % \
-                                    identify_resource(resource))
+        log.info('No content-length returned for server: %s'
+                                % (url))
+        raise ResourceError("Unable to get content length",
+            'Unable to find the size of the remote resource: %s' % \
+                                identify_resource(resource))
     return None
 
 

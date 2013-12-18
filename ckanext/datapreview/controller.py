@@ -116,7 +116,7 @@ class DataPreviewController(BaseController):
                 r = urllib2.urlopen(req)
                 if r.getcode() == 200:
                     url = u
-                    query['length'] = r.info()["content-length"]
+                    query['length'] = r.info().get("content-length", 0)
                     query['mimetype'] = r.info().get('content-type', None)
                     log.debug('Previewing cache URL: %s', url)
             except Exception, e:
@@ -132,7 +132,7 @@ class DataPreviewController(BaseController):
                 r = urllib2.urlopen(req)
                 if r.getcode() == 200:
                     url = u
-                    query['length'] = r.info()["content-length"]
+                    query['length'] = r.info().get("content-length", 0)
                     query['mimetype'] = r.info().get('content-type', None)
                     log.debug('Previewing direct from URL: %s', url)
                 elif r.getcode() > 400:
