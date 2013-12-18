@@ -65,7 +65,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
 
     response = None
     try:
-        response = requests.head(url)
+        response = requests.head(url, verify=False)
     except Exception, e:
         log.info("Unable to access resource {0}: {1}".format(url, e))
         raise ResourceError("Unable to access resource",
