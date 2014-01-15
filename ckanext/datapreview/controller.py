@@ -86,6 +86,8 @@ class DataPreviewController(BaseController):
         :param resource: resource object
         :param query: dict describing the properties of the data
         '''
+        from requests.exceptions import InvalidURL
+
         url = None
         archived = False
         query['mimetype'] = None
@@ -106,7 +108,11 @@ class DataPreviewController(BaseController):
         # machine - all the cached files are missing locally, but it can use
         # them from the original machine using the cache_url.
         if not url and hasattr(resource, 'cache_url') and resource.cache_url:
-            u = fix_url(resource.cache_url)
+            try:
+                u = fix_url(resource.cache_url)
+            except InvalidURL:
+                log.error("Unable to fix the URL for resource: %s" % resource.id)
+                return None, False
 
             # e.g. resource.cache_url = "http://data.gov.uk/data/resource_cache/07/0791d492-8ab9-4aae-b7e6-7ecae561faa3/bian-anal-mca-2005-dols-eng-1011-0312-qual.pdf"
             try:
@@ -124,7 +130,12 @@ class DataPreviewController(BaseController):
 
         # Otherwise use the URL itself
         if not url:
-            u = fix_url(resource.url)
+            try:
+                u = fix_url(resource.url)
+            except InvalidURL:
+                log.error("Unable to fix the URL for resource: %s" % resource.id)
+                return None, False
+
             try:
                 req = urllib2.Request(u)
                 req.get_method = lambda: 'HEAD'

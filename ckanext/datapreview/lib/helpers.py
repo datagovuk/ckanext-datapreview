@@ -265,6 +265,8 @@ def fix_url(url):
     Any Unicode characters in a URL become encoded in UTF8.
     It does this by unquoting, encoding, and quoting again.
     """
+    from requests.exceptions import InvalidURL
+
     if not isinstance(url,unicode):
         url = url.decode('utf8')
 
@@ -276,13 +278,23 @@ def fix_url(url):
     user,colon1,pass_ = userpass.partition(':')
     host,colon2,port = hostport.partition(':')
 
+    def fix_common_host_problems(host):
+        return host.replace('..', '.')
+
     # encode each component
     scheme = parsed.scheme.encode('utf8')
     user = urllib.quote(user.encode('utf8'))
     colon1 = colon1.encode('utf8')
     pass_ = urllib.quote(pass_.encode('utf8'))
     at = at.encode('utf8')
-    host = host.encode('idna')
+
+    try:
+        host = fix_common_host_problems(host).encode('idna')
+    except UnicodeError:
+        # This is an invalid URL, so we should complain by abusing the
+        # requests InvalidUrl exception
+        raise InvalidURL("URL is not valid")
+
     colon2 = colon2.encode('utf8')
     port = port.encode('utf8')
     path = '/'.join(  # could be encoded slashes!
