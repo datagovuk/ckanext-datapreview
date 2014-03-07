@@ -152,7 +152,7 @@ class DataPreviewController(BaseController):
                 if err.code < 400:
                     log.warn(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, err.code))
             except Exception, e:
-                log.error(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, e))
+                log.warn(u"Request failed {0} with url {1}, {2}".format(identify_resource(resource), u, e))
 
         return url, archived
 
