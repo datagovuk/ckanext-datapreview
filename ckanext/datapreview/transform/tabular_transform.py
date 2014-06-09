@@ -16,6 +16,7 @@ class TabularTransformer(base.Transformer):
             self.sheet_number = 0
 
         self.type = query.get('type')
+        self.from_archive = query.get('archived', False)
 
     def transform(self):
         handle = self.open_data(self.url)
@@ -69,7 +70,8 @@ class TabularTransformer(base.Transformer):
             "fields": fields,
             "data": data,
             "max_results": self.max_results,
-            "extra_text": extra
+            "extra_text": extra,
+            "archived": "This file is previewed from the data.gov.uk archive." if self.from_archive else ""
         }
 
         self.close_stream(handle)
