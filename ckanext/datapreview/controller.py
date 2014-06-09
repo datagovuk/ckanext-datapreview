@@ -7,11 +7,12 @@ import ckan.model as model
 from ckan.lib.base import (BaseController, c, request, response, abort)
 from ckanext.dgu.plugins_toolkit import NotAuthorized
 from ckan.logic import check_access
+from ckanext.archiver.model import Archival
+from ckanext.qa.model import QA
 
 log = logging.getLogger('ckanext.datapreview')
 
 from ckanext.datapreview.lib.helpers import (proxy_query,
-                                             get_resource_format_from_qa,
                                              identify_resource,
                                              fix_url)
 from ckanext.datapreview.lib.errors import ProxyError
@@ -37,16 +38,17 @@ class DataPreviewController(BaseController):
 
         size_limit = config.get('ckan.datapreview.limit', 5000000)
 
-        format_ = get_resource_format_from_qa(resource)
-        if format_:
-            log.debug("QA thinks this file is %s" % format_)
-        else:
-            log.debug("Did not find QA's data format")
+        qa = QA.get_for_resource(resource.id)
+        format_ = qa.format if qa else None
+        log.debug('File format (according to QA): %r' % format_)
+        if not format_:
             format_ = resource.format.lower() if resource.format else ''
+            log.debug('File format (resource.format): %r' % format_)
 
         query = dict(type=format_, size_limit=size_limit, length=None)
-        if resource.size:
-            query['length'] = resource.size
+        archival = Archival.get_for_resource(resource.id)
+        if archival and archival.size:
+            query['length'] = archival.size
 
         # Add the extra fields if they are set
         for k in ['max-results', 'encoding', 'type']:
@@ -91,49 +93,57 @@ class DataPreviewController(BaseController):
         url = None
         archived = False
         query['mimetype'] = None
+        archival = Archival.get_for_resource(resource.id)
 
-        # Look for a local cache of the data file
-        # e.g. "cache_filepath": "/mnt/shared/ckan_resource_cache/63/63b159d7-90c5-443b-846d-f700f74ea062/bian-anal-mca-2005-dols-eng-1011-0312-tab2.csv"
-        cache_filepath = resource.extras.get('cache_filepath')
-        if cache_filepath:
-            if os.path.exists(cache_filepath.encode('utf8')):
-                log.debug('Previewing local cached data: %s', cache_filepath)
-                url = cache_filepath
-                archived = True
+        if archival:
+            # Look for a local cache of the data file
+            # e.g. "cache_filepath": "/mnt/shared/ckan_resource_cache/63/63b159d7-90c5-443b-846d-f700f74ea062/bian-anal-mca-2005-dols-eng-1011-0312-tab2.csv"
+            if archival.cache_filepath:
+                if os.path.exists(archival.cache_filepath.encode('utf8')):
+                    log.debug('Previewing local cached data: %s', archival.cache_filepath)
+                    url = archival.cache_filepath
+                    archived = True
+                else:
+                    log.debug('Local cached data file missing: %s', archival.cache_filepath)
             else:
-                log.debug('Local cached data file missing: %s', cache_filepath)
+                log.debug('No cache_filepath for resource %s', identify_resource(resource))
 
-        # Otherwise try the cache_url
-        # This works well when running on a database copied from another
-        # machine - all the cached files are missing locally, but it can use
-        # them from the original machine using the cache_url.
-        if not url and hasattr(resource, 'cache_url') and resource.cache_url:
-            try:
-                u = fix_url(resource.cache_url)
-            except InvalidURL:
-                log.error("Unable to fix the URL for resource: %s" % resource.id)
-                return None, False
+            # Otherwise try the cache_url
+            # This works well when running on a database copied from another
+            # machine - all the cached files are missing locally, but it can use
+            # them from the original machine using the cache_url.
+            if not url:
+                if archival.cache_url:
+                    try:
+                        u = fix_url(archival.cache_url)
+                    except InvalidURL:
+                        log.error("Unable to fix the URL for resource: %s" % identify_resource(resource))
+                        return None, False
 
-            # e.g. resource.cache_url = "http://data.gov.uk/data/resource_cache/07/0791d492-8ab9-4aae-b7e6-7ecae561faa3/bian-anal-mca-2005-dols-eng-1011-0312-qual.pdf"
-            try:
-                req = urllib2.Request(u)
-                req.get_method = lambda: 'HEAD'
+                    # e.g. resource.cache_url = "http://data.gov.uk/data/resource_cache/07/0791d492-8ab9-4aae-b7e6-7ecae561faa3/bian-anal-mca-2005-dols-eng-1011-0312-qual.pdf"
+                    try:
+                        req = urllib2.Request(u)
+                        req.get_method = lambda: 'HEAD'
 
-                r = urllib2.urlopen(req)
-                if r.getcode() == 200:
-                    url = u
-                    query['length'] = r.info().get("content-length", 0)
-                    query['mimetype'] = r.info().get('content-type', None)
-                    log.debug('Previewing cache URL: %s', url)
-            except Exception, e:
-                log.error(u"Request {0} with cache url {1}, {2}".format(identify_resource(resource), u, e))
+                        r = urllib2.urlopen(req)
+                        if r.getcode() == 200:
+                            url = u
+                            query['length'] = r.info().get("content-length", 0)
+                            query['mimetype'] = r.info().get('content-type', None)
+                            log.debug('Previewing cache URL: %s', url)
+                    except Exception, e:
+                        log.error(u"Request {0} with cache url {1}, {2}".format(identify_resource(resource), u, e))
+                else:
+                    log.debug('No cache_url for resource %s', identify_resource(resource))
+        else:
+            log.debug('Resource is not archived: %s', identify_resource(resource))
 
         # Otherwise use the URL itself
         if not url:
             try:
                 u = fix_url(resource.url)
             except InvalidURL:
-                log.error("Unable to fix the URL for resource: %s" % resource.id)
+                log.error("Unable to fix the URL for resource: %s" % identify_resource(resource))
                 return None, False
 
             try:

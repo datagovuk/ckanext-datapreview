@@ -13,23 +13,6 @@ log = logging.getLogger('ckanext.datapreview.lib.helpers')
 
 REDIRECT_LIMIT = 3
 
-def get_resource_format_from_qa(resource):
-    '''Returns the format of the resource, as detected by QA.
-    If there is none recorded for this resource, returns None
-    '''
-    import ckan.model as model
-    task_status = model.Session.query(model.TaskStatus).\
-                  filter(model.TaskStatus.task_type=='qa').\
-                  filter(model.TaskStatus.key=='status').\
-                  filter(model.TaskStatus.entity_id==resource.id).first()
-    if not task_status:
-        return None
-
-    try:
-        status = json.loads(task_status.error)
-    except ValueError:
-        return {}
-    return status['format']
 
 def get_resource_length(url, resource, required=False, redirects=0):
     '''Get file size of a resource.
@@ -47,6 +30,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
     If the headers do not contain the length, this method returns None.
     '''
     log.debug('Getting resource length of %s' % url)
+    # Case 1: url is a filename
     if not url.startswith('http'):
         try:
             if not os.path.exists(url):
@@ -63,6 +47,7 @@ def get_resource_length(url, resource, required=False, redirects=0):
 
         return os.path.getsize(url)
 
+    # Case 2: url is a URL
     response = None
     try:
         response = requests.head(url, verify=False)
@@ -210,7 +195,7 @@ def proxy_query(resource, url, query):
     max_length = int(query['size_limit'])
 
     if query.get('archived', True):
-        log.info("Skipping size check when reading from archive")
+        log.debug("Skipping size check when reading from archive")
     else:
         # We only do the length check when we are working with remote files as
         # they might take too long to download.
@@ -263,20 +248,25 @@ def identify_resource(resource):
 def fix_url(url):
     """
     Any Unicode characters in a URL become encoded in UTF8.
-    It does this by unquoting, encoding, and quoting again.
+    It does this by unquoting, encoding as UTF8, and quoting again.
+
+    It must not get tripped up on '+' characters which are encoded spaces.
+    e.g. This should be left unchanged or the "+" changed to "%20" :
+      http://data.defra.gov.uk/inspire/UK+MR_indicators_Report_2011V6.csv
     """
     from requests.exceptions import InvalidURL
 
-    if not isinstance(url,unicode):
+    # resource.url is type unicode, but if it isn't for some reason, decode
+    if not isinstance(url, unicode):
         url = url.decode('utf8')
 
     # parse it
     parsed = urlparse.urlsplit(url)
 
     # divide the netloc further
-    userpass,at,hostport = parsed.netloc.rpartition('@')
-    user,colon1,pass_ = userpass.partition(':')
-    host,colon2,port = hostport.partition(':')
+    userpass, at, hostport = parsed.netloc.rpartition('@')
+    user, colon1, pass_ = userpass.partition(':')
+    host, colon2, port = hostport.partition(':')
 
     def fix_common_host_problems(host):
         return host.replace('..', '.')
@@ -298,7 +288,7 @@ def fix_url(url):
     colon2 = colon2.encode('utf8')
     port = port.encode('utf8')
     path = '/'.join(  # could be encoded slashes!
-        urllib.quote(urllib.unquote(pce).encode('utf8'),'')
+        urllib.quote(urllib.unquote_plus(pce).encode('utf8'),'')
         for pce in parsed.path.split('/')
     )
     query = urllib.quote(urllib.unquote(parsed.query).encode('utf8'),'=&?/')
