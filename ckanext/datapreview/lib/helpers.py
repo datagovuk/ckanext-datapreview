@@ -5,7 +5,7 @@ import urllib
 import urllib2
 import logging
 import json
-import requests
+from requests import Session, Request
 from ckanext.datapreview.transform.base import transformer
 from ckanext.datapreview.lib.errors import (ResourceError, RequestError)
 
@@ -47,10 +47,19 @@ def get_resource_length(url, resource, required=False, redirects=0):
 
         return os.path.getsize(url)
 
-    # Case 2: url is a URL
+    # Case 2: url is a URL. Send a HEAD to get the Content-Length
     response = None
+    # NB requests doesn't receive the Content-Length header from servers
+    # including ours unless you tell it not to send the Content-Length header
+    # in the request (!)
+    # e.g. http://data.gov.uk/data/resource_cache/2a/2ac8abba-4a71-4f12-af1b-57ad0e36b6a4/MOTsitelist.csv
+    s = Session()
+    req = Request('HEAD', url)
+    prepped_request = req.prepare()
+    del prepped_request.headers['Content-Length']
     try:
-        response = requests.head(url, verify=False)
+        # verify=False means don't verify the SSL certificate
+        response = s.send(prepped_request, verify=False)
     except Exception, e:
         log.info("Unable to access resource {0}: {1}".format(url, e))
         raise ResourceError("Unable to access resource",
