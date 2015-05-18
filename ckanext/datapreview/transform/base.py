@@ -79,3 +79,6 @@ class Transformer(object):
             result["max_results"] = self.max_results
 
         return result
+
+    def local_size_limit(self):
+        return False

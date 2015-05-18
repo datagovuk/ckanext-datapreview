@@ -84,6 +84,21 @@ class TabularTransformer(base.Transformer):
 
         return result
 
+    def local_size_limit(self):
+        if self.is_csv():
+            return False
+        else:
+            return True
+
+    def is_csv(self):
+        if self.type in ['csv', 'tsv']:
+            return True
+
+        if self.mimetype in ["text/csv", "text/comma-separated-values"]:
+            return True
+
+        return False
+
 def _list(iterable, max_results):
     '''Returns the list(iterable) up to a maximum number of results'''
     out = []

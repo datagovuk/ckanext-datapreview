@@ -203,7 +203,7 @@ def proxy_query(resource, url, query):
 
     max_length = int(query['size_limit'])
 
-    if query.get('archived', True):
+    if query.get('archived', True) and not trans.local_size_limit():
         log.debug("Skipping size check when reading from archive")
     else:
         # We only do the length check when we are working with remote files as
