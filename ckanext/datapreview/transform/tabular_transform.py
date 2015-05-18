@@ -8,7 +8,7 @@ log = __import__('logging').getLogger(__name__)
 
 class TabularTransformer(base.Transformer):
 
-    def __init__(self, resource, url, query, mimetype=None):
+    def __init__(self, resource, url, query):
         super(TabularTransformer, self).__init__(resource, url, query)
         self.requires_size_limit = True
 
@@ -45,11 +45,9 @@ class TabularTransformer(base.Transformer):
 
         # Find a workable sheet with more than 0 rows
         rows = []
-        row_count = 0
         for table in tables:
             # + 1 so that the header is included
-            row_count = len(list(table))
-            rows = _list(table, self.max_results + 1)
+            rows, more_results = _list(table, self.max_results + 1)
             if len(rows) > 0:
                 break
 
@@ -68,11 +66,11 @@ class TabularTransformer(base.Transformer):
 
         if len(tables) > 1:
             extra = "Only 1 of {0} tables shown".format(len(tables))
-            if row_count > self.max_results:
-                extra = extra + " and {0} rows from {1} in this table".format(self.max_results, row_count)
+            if more_results:
+                extra = extra + " and the first {0} rows in this table".format(self.max_results)
         else:
-            if row_count > self.max_results:
-                extra = "This preview shows only {0} rows from {1}".format(self.max_results, row_count)
+            if more_results:
+                extra = "This preview shows only the first {0} rows".format(self.max_results)
 
         result = {
             "fields": fields,
@@ -89,10 +87,12 @@ class TabularTransformer(base.Transformer):
 def _list(iterable, max_results):
     '''Returns the list(iterable) up to a maximum number of results'''
     out = []
+    more_results = False
     count = 0
     for item in iterable:
+        if count > max_results:
+            more_results = True
+            break
         out.append(item)
         count += 1
-        if count == max_results:
-            break
-    return out
+    return out, more_results
