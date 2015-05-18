@@ -91,10 +91,10 @@ class TabularTransformer(base.Transformer):
             return True
 
     def is_csv(self):
-        if self.type in ['csv', 'tsv']:
+        if self.type.lower() in ['csv', 'tsv']:
             return True
 
-        if self.mimetype in ["text/csv", "text/comma-separated-values"]:
+        if self.mimetype.lower() in ["text/csv", "text/comma-separated-values"]:
             return True
 
         return False
