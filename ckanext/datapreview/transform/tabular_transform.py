@@ -3,6 +3,8 @@ import base
 from ckanext.datapreview.lib.errors import ResourceError
 from messytables import any_tableset, headers_guess
 
+log = __import__('logging').getLogger(__name__)
+
 
 class TabularTransformer(base.Transformer):
 
@@ -18,20 +20,26 @@ class TabularTransformer(base.Transformer):
         self.type = query.get('type')
         self.from_archive = query.get('archived', False)
 
+        dataset_name = resource.resource_group.package.name \
+            if resource.resource_group else '?'
+        self.resource_identifier = '/dataset/%s/resource/%s' % (dataset_name, resource.id)
+
     def transform(self):
         handle = self.open_data(self.url)
 
         if not handle:
             raise ResourceError("Remote resource missing",
-                "Unable to load the remote resource")
+                                "Unable to load the remote resource")
 
         try:
             table_set = any_tableset(fileobj=handle,
                                      extension=self.type,
                                      mimetype=self.mimetype)
         except Exception, e:
+            # e.g. ValueError('Unrecognized MIME type: application/vnd.oasis.opendocument.spreadsheet')
+            log.warn('Messytables parse error %s %s: %s', self.resource_identifier, self.url, e)
             raise ResourceError("Resource loading error",
-                "Unable to load the resource")
+                                "Unable to load the resource")
 
         tables = table_set.tables
 
@@ -47,7 +55,7 @@ class TabularTransformer(base.Transformer):
 
         # Use the built-in header guessing in messtables to find the fields
         offset, headers = headers_guess(rows)
-        fields =  [unicode(c) for c in headers] if headers else []
+        fields = [unicode(c) for c in headers] if headers else []
 
         # other rows become 'data'. Convert to unicode.
         # We should skip row offset so that we don't re-display the headers

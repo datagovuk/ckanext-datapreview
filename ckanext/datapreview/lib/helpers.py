@@ -225,12 +225,12 @@ def proxy_query(resource, url, query):
         # In all likelihood, there was no data to read
         log.debug('Transformation of %s failed. %s', url, si)
         raise ResourceError("Data Transformation Error",
-            "There was a problem reading the resource data: %s" % \
+            "There was a problem reading the resource data: %s" %
                                     identify_resource(resource))
     except Exception, e:
         log.exception(e)
         raise ResourceError("Data Transformation Error",
-                            "Data transformation failed: %s %s" % \
+                            "Data transformation failed: %s %s" %
                                     (identify_resource(resource), e))
 
     indent = None
