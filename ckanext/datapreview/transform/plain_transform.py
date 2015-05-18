@@ -16,7 +16,6 @@ class PlainTransformer(Transformer):
 
     def __init__(self, resource, url, query):
         super(PlainTransformer, self).__init__(resource, url, query)
-        self.requires_size_limit = True
 
     def transform(self):
         handle = self.open_data(self.url)

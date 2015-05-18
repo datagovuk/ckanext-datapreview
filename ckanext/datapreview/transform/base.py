@@ -40,7 +40,6 @@ class Transformer(object):
         self.url = url
         self.query = query
         self.open_data = query['handler']
-        self.requires_size_limit = True
         self.max_results = 500
         self.mimetype = query.get('mimetype', None)
 
@@ -80,5 +79,8 @@ class Transformer(object):
 
         return result
 
-    def local_size_limit(self):
-        return False
+    def requires_size_limit(self):
+        '''Whether the transformer is subject to the 'limit', due to needing to
+        loading the whole file into memory to only read a sample of it.
+        '''
+        return True

@@ -36,7 +36,7 @@ class DataPreviewController(BaseController):
         except NotAuthorized, e:
             abort(403, "You are not permitted access to this resource")
 
-        size_limit = config.get('ckan.datapreview.limit', 5000000)
+        size_limit = config.get('ckan.datapreview.limit', 5242880)
 
         qa = QA.get_for_resource(resource.id)
         format_ = qa.format if qa else None

@@ -10,7 +10,6 @@ class TabularTransformer(base.Transformer):
 
     def __init__(self, resource, url, query):
         super(TabularTransformer, self).__init__(resource, url, query)
-        self.requires_size_limit = True
 
         if 'worksheet' in self.query:
             self.sheet_number = int(self.query.getfirst('worksheet'))
@@ -70,7 +69,7 @@ class TabularTransformer(base.Transformer):
                 extra = extra + " and the first {0} rows in this table".format(self.max_results)
         else:
             if more_results:
-                extra = "This preview shows only the first {0} rows".format(self.max_results)
+                extra = "This preview shows only the first {0} rows - download it for the full file".format(self.max_results)
 
         result = {
             "fields": fields,
@@ -84,17 +83,24 @@ class TabularTransformer(base.Transformer):
 
         return result
 
-    def local_size_limit(self):
+    def requires_size_limit(self):
         if self.is_csv():
+            # We are confident that messytables.CSVTableSet will give us a
+            # sample of the data without having to load the whole of the file
+            # into memory, so we lift the size limit
             return False
         else:
             return True
 
     def is_csv(self):
+        '''This should catch most files for which messytables.any_tableset will
+        use CSVTableSet to parse them.
+        '''
         if self.type.lower() in ['csv', 'tsv']:
             return True
 
-        if self.mimetype.lower() in ["text/csv", "text/comma-separated-values"]:
+        if self.mimetype and self.mimetype.lower() in \
+                ['text/csv', 'text/comma-separated-values', 'application/csv']:
             return True
 
         return False
