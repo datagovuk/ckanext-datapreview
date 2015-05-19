@@ -18,11 +18,12 @@ def get_resource_length(url, resource, required=False, redirects=0):
     '''Get file size of a resource.
 
     Either do a HEAD request to the url, or checking the
-    size on disk.
+    size on disk. (Will not download the whole file.)
 
     :param url: URL to check
     :param resource: Resource object, just for identification purposes
-    :param required: ?
+    :param required: If cannot get the length (without resorting to downloading
+                     the whole file), raises ResourceError
     :param redirects: For counting the number of recursions due to redirects
 
     On error, this method raises ResourceError.
@@ -144,14 +145,24 @@ def proxy_query(resource, url, query):
 
     e.g. if it is a spreadsheet, it returns a JSON dict:
         {
+            "archived": "This file is previewed from the data.gov.uk archive.",
             "fields": ['Name', 'Age'],
             "data": [['Bob', 42], ['Jill', 54]],
+            "extra_text": "This preview shows only the first 10 rows",
             "max_results": 10,
             "length": 435,
             "url": "http://data.com/file.csv",
         }
     Whatever it is, it always has length (file size in bytes) and url (where
     it got the data from, which might be a URL or a local cache filepath).
+
+    Or an error message:
+        {
+            "error": {
+                "message": "Requested resource is 21.3MB. Size limit is  19MB. Resource: /dataset/your-freedom-data/resource/ea11ed1e-d793-4fc6-b150-fb362a7ccac9",
+                "title": "The requested file is too large to preview"
+            }
+        }
 
     May raise RequestError.
 
@@ -197,18 +208,24 @@ def proxy_query(resource, url, query):
 
     length = query.get('length',
                        get_resource_length(url, resource,
-                                           trans.requires_size_limit))
+                                           trans.requires_size_limit()))
 
     log.debug('The file at %s has length %s', url, length)
 
     max_length = int(query['size_limit'])
 
-    if query.get('archived', True):
-        log.debug("Skipping size check when reading from archive")
+    transformer_requires_size_limit = trans.requires_size_limit()
+    log.debug('Size=%s Archived=%s Transformer-limited=%s Limit=%s',
+              int(length), query.get('archived'),
+              transformer_requires_size_limit, max_length)
+    if query.get('archived', True) and not transformer_requires_size_limit:
+        log.debug('Skipping size check - reading from archive and the '
+                  'transformer for this format does not require a limit')
     else:
-        # We only do the length check when we are working with remote files as
-        # they might take too long to download.
-        if length and trans.requires_size_limit and int(length) > max_length:
+        # Do size check
+        #  - remote files may take too long to download
+        #  - some file formats need loading fully into memory and take too much
+        if length and int(length) > max_length:
             raise ResourceError('The requested file is too large to preview',
                                 'Requested resource is %s. '
                                 'Size limit is %s. Resource: %s'
