@@ -12,9 +12,9 @@ def find_transformer(extension=None, mime_type=None):
 
     info = None
     for trans in transformers:
-        if extension and extension in trans["extensions"]:
+        if extension and extension.lower() in trans["extensions"]:
             info = trans
-        if mime_type and mime_type in trans["mime_types"]:
+        if mime_type and mime_type.lower().startswith(trans["mime_types"]):
             info = trans
     if not info:
         return None
@@ -24,7 +24,8 @@ def find_transformer(extension=None, mime_type=None):
 
 def transformer(type_name, resource, url, query):
     """Get transformation module for resource of given type"""
-    trans_class = find_transformer(extension=type_name)
+    mime_type = query.get('mimetype')
+    trans_class = find_transformer(extension=type_name, mime_type=mime_type)
     if not trans_class:
         trans_class = find_transformer(extension='*')
     if not trans_class:
