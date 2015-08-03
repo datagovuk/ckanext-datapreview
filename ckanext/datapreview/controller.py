@@ -16,7 +16,7 @@ from ckanext.datapreview.lib.helpers import (proxy_query,
                                              identify_resource,
                                              fix_url)
 from ckanext.datapreview.lib.errors import ProxyError
-
+from ckanext.datapreview.transform import ALLOWED_MIMETYPES
 
 def _error(**vars):
     return json.dumps(dict(error=vars), indent=4)
@@ -57,16 +57,27 @@ class DataPreviewController(BaseController):
 
         url, archived = self._get_url(resource, query)
         query['archived'] = archived
-        if url:
-            try:
-                response.content_type = 'application/json'
-                result = proxy_query(resource, url, query)
-            except ProxyError as e:
-                log.warn("Request {0} failed : {1}".format(identify_resource(resource), e))
-                result = _error(title=e.title, message=e.message)
-        else:
-            result = _error(title="Remote resource not downloadable",
-                message="Unable to find the remote resource for download")
+
+        # Perform a last check of the mimetype in case we've been tricked into
+        # fetching something that isn't tabular. This happens when csv is passed
+        # as the format, and we don't check that it actually is.
+        result = None
+        mimetype = query.get('mimetype', None)
+        if mimetype and (not mimetype in ALLOWED_MIMETYPES):
+            log.warn("Request {0} failed - actual content does not have a valid mimetype".format(identify_resource(resource)))
+            result = _error(title="Cannot display content", message="Unable to preview file, it is not a CSV or XLS file.")
+
+        if not result:
+            if url:
+                try:
+                    response.content_type = 'application/json'
+                    result = proxy_query(resource, url, query)
+                except ProxyError as e:
+                    log.warn("Request {0} failed : {1}".format(identify_resource(resource), e))
+                    result = _error(title=e.title, message=e.message)
+            else:
+                result = _error(title="Remote resource not downloadable",
+                    message="Unable to find the remote resource for download")
 
         format_ = request.params.get('callback')
         if format_:
