@@ -57,7 +57,8 @@ def get_resource_length(url, resource, required=False, redirects=0):
     s = Session()
     req = Request('HEAD', url)
     prepped_request = req.prepare()
-    del prepped_request.headers['Content-Length']
+    if 'Content-Length' in prepped_request.headers:
+        del prepped_request.headers['Content-Length']
     try:
         # verify=False means don't verify the SSL certificate
         response = s.send(prepped_request, verify=False)
