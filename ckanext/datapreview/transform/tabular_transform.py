@@ -6,6 +6,15 @@ from messytables import any_tableset, headers_guess
 log = __import__('logging').getLogger(__name__)
 
 
+HTML_ESCAPE_TABLE = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+    }
+
+
 class TabularTransformer(base.Transformer):
 
     def __init__(self, resource, url, query):
@@ -50,16 +59,20 @@ class TabularTransformer(base.Transformer):
             if len(rows) > 0:
                 break
 
+        def prepare_cell(cell):
+            v = unicode(cell)
+            return "".join(HTML_ESCAPE_TABLE.get(c,c) for c in v)
+
         # Use the built-in header guessing in messtables to find the fields
         offset, headers = headers_guess(rows)
-        fields = [unicode(c) for c in headers] if headers else []
+        fields = [prepare_cell(c) for c in headers] if headers else []
 
         # other rows become 'data'. Convert to unicode.
         # We should skip row offset so that we don't re-display the headers
         data = []
         for i, r in enumerate(rows[:self.max_results]):
             if i != offset:
-                data.append([unicode(c.value) for c in r])
+                data.append([prepare_cell(c.value) for c in r])
 
         extra = ""
 
